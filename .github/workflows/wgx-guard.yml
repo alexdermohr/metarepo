@@ -36,26 +36,33 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install "pyyaml~=6.0"
       - name: Run schema-lite check
+        shell: python
         run: |
-          python - <<'PY'
-          import sys, yaml, pathlib
-          p = pathlib.Path(".wgx/profile.yml")
-          data = yaml.safe_load(p.read_text(encoding="utf-8"))
-          required_top = ["version","env_priority","tooling","tasks"]
-          missing = [k for k in required_top if k not in data]
+          import pathlib
+          import sys
+
+          import yaml
+
+          profile_path = pathlib.Path(".wgx/profile.yml")
+          data = yaml.safe_load(profile_path.read_text(encoding="utf-8"))
+
+          required_top = ["version", "env_priority", "tooling", "tasks"]
+          missing = [key for key in required_top if key not in data]
           if missing:
               print(f"::error::missing keys: {missing}")
               sys.exit(1)
-          envp = data["env_priority"]
-          if not isinstance(envp, list) or not envp:
+
+          env_priority = data["env_priority"]
+          if not isinstance(env_priority, list) or not env_priority:
               print("::error::env_priority must be a non-empty list")
               sys.exit(1)
-          for t in ["up","lint","test","build","smoke"]:
-              if t not in data["tasks"]:
-                  print(f"::error::task '{t}' missing")
+
+          for task_name in ["up", "lint", "test", "build", "smoke"]:
+              if task_name not in data["tasks"]:
+                  print(f"::error::task '{task_name}' missing")
                   sys.exit(1)
+
           print("schema-lite ok")
-          PY
 
       - name: (Optional) UV bootstrap (pyproject present)
         if: ${{ hashFiles('pyproject.toml') != '' }}

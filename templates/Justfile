@@ -1,0 +1,10 @@
+default: help
+help:
+  @echo "Targets: fmt lint test ci"
+fmt:
+  @echo "formatting…"; true
+lint:
+  @echo "linting…"; true
+test:
+  @echo "testing…"; true
+ci: fmt lint test

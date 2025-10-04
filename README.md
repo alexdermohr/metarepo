@@ -19,3 +19,9 @@ Siehe `repos.yml`. Standard: alle öffentlichen Repos unter `alexdermohr`, **au�
 4. `just validate` – prüft Template-Konsistenz
 
 > Für Dummies: Dieses Repo ist die Schaltzentrale. Hier pflegst du Regeln und Vorlagen **einmal** und verteilst sie dann in alle anderen Repos. So vermeidest du Doppelpflege und Chaos.
+
+## Codex Playbook (Kurz)
+1) Pull-Lernen:   ./scripts/sync-templates.sh --pull-from <repo> --pattern "templates/docs/**"
+2) Drift-Report:  ./scripts/wgx-doctor --repo <repo>
+3) Push-Kanon:    ./scripts/sync-templates.sh --push-to <repo> --pattern "templates/.wgx/profile.yml"
+Tip: --dry-run für sichere Vorschau; Repos-Liste: repos.yml & --repos-from

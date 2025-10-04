@@ -7,11 +7,14 @@ green(){ printf "\e[32m%s\e[0m\n" "$*"; }
 yellow(){ printf "\e[33m%s\e[0m\n" "$*"; }
 
 usage(){
+  local default_owner="${GITHUB_OWNER:-alexdermohr}"
   cat <<USG
 Usage:
   $0 --pull-from <repo-name> --pattern "<glob>" [--pattern "..."] [--dry-run]
   $0 --push-to   <repo-name> --pattern "<glob>" [--pattern "..."] [--dry-run]
   $0 --repos-from <file> --pattern "<glob>" [--pattern "..."] [--dry-run]
+  # Optional Namespace:
+  [--owner <org-or-user>] | [--owner-from-env]  (Default: ${default_owner})
 
 Patterns sind relativ zu den Template-Roots:
   - templates/.github/workflows/*.yml
@@ -25,7 +28,6 @@ REPO_FROM=""; REPO_TO=""
 REPOS_FROM_FILE=""
 PATTERNS=()
 OWNER="${GITHUB_OWNER:-alexdermohr}"
-CUSTOM_OWNER_SET=0
 DRYRUN=0
 
 while [[ $# -gt 0 ]]; do
@@ -34,8 +36,8 @@ while [[ $# -gt 0 ]]; do
     --push-to)   REPO_TO="$2"; shift 2 ;;
     --repos-from) REPOS_FROM_FILE="$2"; shift 2 ;;
     --pattern)   PATTERNS+=("$2"); shift 2 ;;
-    --owner)     OWNER="$2"; CUSTOM_OWNER_SET=1; shift 2 ;;
-    --owner-from-env) OWNER="${GITHUB_OWNER:?Missing GITHUB_OWNER}"; CUSTOM_OWNER_SET=1; shift ;;
+    --owner)     OWNER="$2"; shift 2 ;;
+    --owner-from-env) OWNER="${GITHUB_OWNER:?Missing GITHUB_OWNER}"; shift ;;
     --dry-run)   DRYRUN=1; shift ;;
     -h|--help)   usage; exit 0 ;;
     *) yellow "Ignoriere unbekanntes Argument: $1"; shift ;;
@@ -53,6 +55,8 @@ fi
 if [[ ${#PATTERNS[@]} -eq 0 ]]; then
   PATTERNS=("templates/.github/workflows/*.yml" "templates/Justfile" "templates/docs/**" "templates/.wgx/profile.yml")
 fi
+
+echo "→ OWNER=${OWNER}  DRYRUN=${DRYRUN}"
 
 TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR"' EXIT

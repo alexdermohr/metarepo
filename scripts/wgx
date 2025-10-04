@@ -52,17 +52,18 @@ copy_templates_into_repo() {
   rsync -a "$tmp/." "$workdir/"
 
   pushd "$workdir" >/dev/null
-    git checkout -b chore/wgx-sync-$(date +%Y%m%d-%H%M%S) || true
+    local branch="chore/wgx-sync-$(date +%Y%m%d-%H%M%S)"
+    git checkout -b "$branch" || true
     git add -A
     if ! git diff --cached --quiet; then
       git commit -m "chore(wgx): sync templates from metarepo"
       git push -u origin HEAD
-      gh pr create --title "chore(wgx): sync templates" --body "Sync from metarepo templates" || true
+      gh pr create --title "chore(wgx): sync templates" --body "Automated sync from metarepo on branch \`$branch\`" || true
     else
       echo "No changes for $r"
     fi
   popd >/dev/null
-  rm -rf "$tmp" "$workdir"
+  rm -rf "${tmp:?}" "${workdir:?}"
 }
 
 cmd_up() {

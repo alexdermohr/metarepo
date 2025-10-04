@@ -33,6 +33,7 @@ Metarepo dient als zentraler, lernender Meta-Layer. Es spiegelt **kanonische Tem
 ## Tooling
 - `scripts/sync-templates.sh` — bidirektional (pull/push), Filter über `--pattern`.
 - `scripts/wgx-doctor` — Drift-Meter + Reconciliation Report (Markdown unter `reports/`).
+- **Owner-Parameter**: `GITHUB_OWNER` oder `--owner` setzen, z. B. `export GITHUB_OWNER=org && ./scripts/wgx-doctor --repo X --owner-from-env` bzw. `./scripts/sync-templates.sh --push-to X --owner org`.
 
 ## Sicherheitsmodus
 - Kein Commit ohne Diff-Vorschau.

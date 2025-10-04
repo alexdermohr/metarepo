@@ -24,6 +24,8 @@ USG
 REPO_FROM=""; REPO_TO=""
 REPOS_FROM_FILE=""
 PATTERNS=()
+OWNER="${GITHUB_OWNER:-alexdermohr}"
+CUSTOM_OWNER_SET=0
 DRYRUN=0
 
 while [[ $# -gt 0 ]]; do
@@ -32,6 +34,8 @@ while [[ $# -gt 0 ]]; do
     --push-to)   REPO_TO="$2"; shift 2 ;;
     --repos-from) REPOS_FROM_FILE="$2"; shift 2 ;;
     --pattern)   PATTERNS+=("$2"); shift 2 ;;
+    --owner)     OWNER="$2"; CUSTOM_OWNER_SET=1; shift 2 ;;
+    --owner-from-env) OWNER="${GITHUB_OWNER:?Missing GITHUB_OWNER}"; CUSTOM_OWNER_SET=1; shift ;;
     --dry-run)   DRYRUN=1; shift ;;
     -h|--help)   usage; exit 0 ;;
     *) yellow "Ignoriere unbekanntes Argument: $1"; shift ;;
@@ -55,7 +59,7 @@ trap 'rm -rf "$TMPDIR"' EXIT
 
 clone_repo(){
   local name="$1"
-  local url="https://github.com/alexdermohr/${name}.git"
+  local url="https://github.com/${OWNER}/${name}.git"
   rm -rf "$TMPDIR/$name"
   git -c advice.detachedHead=false clone --depth=1 "$url" "$TMPDIR/$name" >/dev/null 2>&1 || {
     red "Clone fehlgeschlagen: $url"; exit 1; }

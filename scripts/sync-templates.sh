@@ -7,11 +7,14 @@ green(){ printf "\e[32m%s\e[0m\n" "$*"; }
 yellow(){ printf "\e[33m%s\e[0m\n" "$*"; }
 
 usage(){
+  local default_owner="${GITHUB_OWNER:-alexdermohr}"
   cat <<USG
 Usage:
   $0 --pull-from <repo-name> --pattern "<glob>" [--pattern "..."] [--dry-run]
   $0 --push-to   <repo-name> --pattern "<glob>" [--pattern "..."] [--dry-run]
   $0 --repos-from <file> --pattern "<glob>" [--pattern "..."] [--dry-run]
+  # Optional Namespace:
+  [--owner <org-or-user>] | [--owner-from-env]  (Default: ${default_owner})
 
 Patterns sind relativ zu den Template-Roots:
   - templates/.github/workflows/*.yml
@@ -52,6 +55,8 @@ fi
 if [[ ${#PATTERNS[@]} -eq 0 ]]; then
   PATTERNS=("templates/.github/workflows/*.yml" "templates/Justfile" "templates/docs/**" "templates/.wgx/profile.yml")
 fi
+
+echo "→ OWNER=${OWNER}  DRYRUN=${DRYRUN}"
 
 TMPDIR="$(mktemp -d)"
 trap 'rm -rf -- "${TMPDIR:?}"' EXIT

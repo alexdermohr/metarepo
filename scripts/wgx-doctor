@@ -5,11 +5,15 @@ usage(){ echo "Usage: $0 --repo <name> [--patterns \"glob1,glob2\"]"; }
 
 REPO=""
 PATTERNS="templates/.github/workflows/*.yml,templates/Justfile,templates/docs/**,templates/.wgx/profile.yml"
+OWNER="${GITHUB_OWNER:-alexdermohr}"
+
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --repo) REPO="$2"; shift 2 ;;
     --patterns) PATTERNS="$2"; shift 2 ;;
+    --owner) OWNER="$2"; shift 2 ;;
+    --owner-from-env) OWNER="${GITHUB_OWNER:?Missing GITHUB_OWNER}"; shift ;;
     -h|--help) usage; exit 0 ;;
     *) shift ;;
   esac
@@ -20,7 +24,7 @@ TS="$(date +%Y%m%d-%H%M%S)"
 TMPDIR="$(mktemp -d)"; trap 'rm -rf "$TMPDIR"' EXIT
 REPORT="reports/drift-${REPO}-${TS}.md"; mkdir -p reports
 
-git clone --depth=1 "https://github.com/alexdermohr/${REPO}.git" "$TMPDIR/$REPO" >/dev/null 2>&1 || {
+git clone --depth=1 "https://github.com/${OWNER}/${REPO}.git" "$TMPDIR/$REPO" >/dev/null 2>&1 || {
   echo "Clone fehlgeschlagen: $REPO"; exit 1; }
 
 echo "# Drift Report: $REPO ($TS)" > "$REPORT"

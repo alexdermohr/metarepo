@@ -36,7 +36,10 @@ for g in "${GLOBS[@]}"; do
     *) CANON="$g"; REL="$g" ;;
   esac
 
-  mapfile -t files < <(printf "%s\n" $CANON)
+  shopt -q nullglob; NG_WAS_SET=$?
+  shopt -s nullglob
+  files=($CANON)
+  (( NG_WAS_SET != 0 )) && shopt -u nullglob
   for f in "${files[@]}"; do
     [[ -z "$f" ]] && continue
     REL_PATH="${f#templates/}"

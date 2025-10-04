@@ -1,0 +1,21 @@
+# WGX-Profil (Template) – wird in Subrepos gespiegelt
+wgx:
+  name: "{{REPO_NAME}}"
+  role: "service"  # z.B. service | app | lib | doc-only
+  stack:
+    langs: [ "rust", "python" ]
+    infra: [ "postgres", "nats", "postgis", "maplibre" ]
+  env_priority:
+    - devcontainer
+    - devbox
+    - mise-direnv
+    - termux
+  commands:
+    up: "just up || true"
+    test: "just test || true"
+    lint: "just lint || true"
+    smoke: "just smoke || true"
+  ci:
+    use_reusable_ci: true
+  notes:
+    - "Dieses Profil ist ein Template. Lokale Anpassung pro Repo erlaubt."

@@ -1,0 +1,33 @@
+name: validate-templates
+on:
+  push:
+    paths:
+      - 'templates/**'
+      - 'scripts/**'
+      - 'repos.yml'
+      - '.github/workflows/validate-templates.yml'
+  pull_request:
+    paths:
+      - 'templates/**'
+      - 'scripts/**'
+      - 'repos.yml'
+      - '.github/workflows/validate-templates.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check YAMLs
+        run: |
+          pipx install yq || true
+          find . -type f \( -name '*.yml' -o -name '*.yaml' \) -print0 \
+            | xargs -0 -I{} python - <<PY
+import yaml,sys,os
+p=sys.argv[1]
+yaml.safe_load(open(p))
+print(f"ok: {p}")
+PY {}
+      - name: List templates
+        run: |
+          find templates -type f | sort

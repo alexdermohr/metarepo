@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+REPOS_YML="$ROOT_DIR/repos.yml"
+
+die(){ echo "ERR: $*" >&2; exit 1; }
+
+mode() { yq -r '.mode' "$REPOS_YML"; }
+owner() { yq -r '.github.owner' "$REPOS_YML"; }
+
+repos_from_github() {
+  local ow="$(owner)"
+  command -v gh >/dev/null 2>&1 || die "GitHub CLI (gh) fehlt."
+  gh repo list "$ow" --json name,isPrivate,isFork --limit 200 \
+    | jq -r '.[] | select(.isFork == false) | select(.isPrivate == false) | .name'
+}
+
+repos_from_static() {
+  yq -r '.static.include[]' "$REPOS_YML" 2>/dev/null || true
+}
+
+repos() {
+  local m; m="$(mode)"
+  if [[ "$m" == "github" ]]; then
+    repos_from_github
+  else
+    repos_from_static
+  fi
+}
+
+cmd_list() {
+  echo "▶ Fleet-Repos:"
+  repos | sed 's/^/ - /'
+}
+
+copy_templates_into_repo() {
+  local r="$1"
+  local tmp
+  tmp="$(mktemp -d)"
+  rsync -a --delete "$ROOT_DIR/templates/" "$tmp/"
+  # Platzhalter ersetzen (simple)
+  find "$tmp" -type f -print0 | xargs -0 sed -i "s/{{REPO_NAME}}/${r}/g"
+
+  # Klonen (shallow) in tmp, syncen, PR optional
+  local ow; ow="$(owner)"
+  local url="git@github.com:${ow}/${r}.git"
+  local workdir
+  workdir="$(mktemp -d)"
+  git clone --depth 1 "$url" "$workdir"
+
+  rsync -a "$tmp/." "$workdir/"
+
+  pushd "$workdir" >/dev/null
+    git checkout -b chore/wgx-sync-$(date +%Y%m%d-%H%M%S) || true
+    git add -A
+    if ! git diff --cached --quiet; then
+      git commit -m "chore(wgx): sync templates from metarepo"
+      git push -u origin HEAD
+      gh pr create --title "chore(wgx): sync templates" --body "Sync from metarepo templates" || true
+    else
+      echo "No changes for $r"
+    fi
+  popd >/dev/null
+  rm -rf "$tmp" "$workdir"
+}
+
+cmd_up() {
+  repos | while read -r r; do
+    [[ -z "$r" ]] && continue
+    echo "▸ Sync $r"
+    copy_templates_into_repo "$r"
+  done
+}
+
+cmd_run() {
+  local target="${1:-smoke}"
+  repos | while read -r r; do
+    echo "▸ $r → $target"
+    gh workflow run "$target" --repo "$(owner)/$r" || echo "skip"
+  done
+}
+
+cmd_validate() {
+  echo "Check: repos.yml schema"
+  yq -e '.' "$REPOS_YML" >/dev/null
+  echo "OK."
+}
+
+cmd_doctor() {
+  for bin in yq jq rsync git gh; do
+    command -v "$bin" >/dev/null || echo "WARN: $bin fehlt"
+  done
+  echo "owner=$(owner)"
+  echo "mode=$(mode)"
+}
+
+cmd_smoke() {
+  repos | wc -l | xargs -I{} echo "Repos in scope: {}"
+}
+
+case "${1:-}" in
+  list) cmd_list ;;
+  up) cmd_up ;;
+  run) shift; cmd_run "${1:-smoke}" ;;
+  doctor) cmd_doctor ;;
+  validate) cmd_validate ;;
+  smoke) cmd_smoke ;;
+  *) echo "Usage: $0 {list|up|run|doctor|validate|smoke}"; exit 2 ;;
+esac

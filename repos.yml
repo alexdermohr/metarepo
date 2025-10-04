@@ -1,0 +1,22 @@
+# Quelle der Repos für Fleet-Operationen.
+# Du kannst entweder harte Listen pflegen ODER automatisch via GitHub-API ziehen.
+
+# Modus: static | github
+mode: github
+
+# Wenn mode=static, dann hier pflegen:
+static:
+  include:
+    - weltgewebe
+    - hauski
+    - hauski-audio
+    - semantAH
+    - wgx
+  exclude:
+    - vault-gewebe  # bleibt privat, wird NICHT angefasst
+
+github:
+  owner: alexdermohr
+  include_forks: false
+  exclude:
+    - vault-gewebe

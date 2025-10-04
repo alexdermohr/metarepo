@@ -68,18 +68,20 @@ copy_into_metarepo_from_repo(){
       templates/*) src="${p#templates/}" ;;
       *) src="$p" ;;
     esac
-    mapfile -t files < <(cd "$TMPDIR/$name" && printf "%s\n" $src || true)
+    files=( "$TMPDIR/$name"/${src} )
     for f in "${files[@]}"; do
-      [[ -z "$f" ]] && continue
-      dest="$PWD/templates/$f"
+      # Remove TMPDIR/$name/ prefix for destination path
+      rel_f="${f#$TMPDIR/$name/}"
+      [[ -z "$rel_f" || "$rel_f" == "$f" ]] && continue
+      dest="$PWD/templates/$rel_f"
       if ((DRYRUN==1)); then
-        echo "↑ (dry-run) Pull: $name :: $f → templates/$f"
+        echo "↑ (dry-run) Pull: $name :: $rel_f → templates/$rel_f"
         continue
       fi
       mkdir -p "$(dirname "$dest")"
-      cp -a "$TMPDIR/$name/$f" "$dest"
-      git add "templates/$f" || true
-      echo "↑ Pull: $name :: $f → templates/$f"
+      cp -a "$f" "$dest"
+      git add "templates/$rel_f" || true
+      echo "↑ Pull: $name :: $rel_f → templates/$rel_f"
     done
   done
 }

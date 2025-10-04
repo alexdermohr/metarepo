@@ -1,3 +1,5 @@
+![WGX](https://img.shields.io/badge/wgx-enabled-blue)
+
 # metarepo
 
 Zentrale Steuerzentrale (Meta-Layer) für alle Repos von **alexdermohr**.

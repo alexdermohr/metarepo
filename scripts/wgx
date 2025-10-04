@@ -6,59 +6,27 @@ REPOS_YML="$ROOT_DIR/repos.yml"
 
 die(){ echo "ERR: $*" >&2; exit 1; }
 
-mode() {
-  python3 - <<'PY' "$REPOS_YML"
-import sys, yaml
-
-with open(sys.argv[1]) as fh:
-    data = yaml.safe_load(fh) or {}
-
-print(data.get('mode', 'static'))
-PY
-}
-
-owner() {
-  python3 - <<'PY' "$REPOS_YML"
-import sys, yaml
-
-with open(sys.argv[1]) as fh:
-    data = yaml.safe_load(fh) or {}
-
-print((data.get('github') or {}).get('owner', ''))
-PY
-}
+mode() { yq -r '.mode' "$REPOS_YML"; }
+owner() { yq -r '.github.owner' "$REPOS_YML"; }
 
 repos_from_github() {
   local ow="$(owner)"
   command -v gh >/dev/null 2>&1 || die "GitHub CLI (gh) fehlt."
-  local payload
-  if ! payload="$(gh repo list "$ow" --json name,isPrivate,isFork --limit 200 2>/dev/null)"; then
-    return 1
-  fi
-  jq -r '.[] | select(.isFork == false) | select(.isPrivate == false) | .name' <<<"$payload"
+  gh repo list "$ow" --json name,isPrivate,isFork --limit 200 \
+    | jq -r '.[] | select(.isFork == false) | select(.isPrivate == false) | .name'
 }
 
 repos_from_static() {
-  python3 - <<'PY' "$REPOS_YML"
-import sys, yaml
-
-with open(sys.argv[1]) as fh:
-    data = yaml.safe_load(fh) or {}
-
-for name in ((data.get('static') or {}).get('include') or []):
-    print(name)
-PY
+  yq -r '.static.include[]' "$REPOS_YML" 2>/dev/null || true
 }
 
 repos() {
   local m; m="$(mode)"
   if [[ "$m" == "github" ]]; then
-    if repos_from_github; then
-      return 0
-    fi
-    echo "WARN: GitHub API nicht erreichbar – fallback auf static.include" >&2
+    repos_from_github
+  else
+    repos_from_static
   fi
-  repos_from_static
 }
 
 cmd_list() {
@@ -79,11 +47,7 @@ copy_templates_into_repo() {
   local url="git@github.com:${ow}/${r}.git"
   local workdir
   workdir="$(mktemp -d)"
-  if ! git clone --depth 1 "$url" "$workdir"; then
-    echo "WARN: git clone fehlgeschlagen für $url – übersprungen" >&2
-    rm -rf "$tmp" "$workdir"
-    return
-  fi
+  git clone --depth 1 "$url" "$workdir"
 
   rsync -a "$tmp/." "$workdir/"
 
@@ -119,17 +83,12 @@ cmd_run() {
 
 cmd_validate() {
   echo "Check: repos.yml schema"
-  python3 - <<'PY' "$REPOS_YML"
-import sys, yaml
-
-with open(sys.argv[1]) as fh:
-    yaml.safe_load(fh)
-PY
+  yq -e '.' "$REPOS_YML" >/dev/null
   echo "OK."
 }
 
 cmd_doctor() {
-  for bin in python3 jq rsync git gh; do
+  for bin in yq jq rsync git gh; do
     command -v "$bin" >/dev/null || echo "WARN: $bin fehlt"
   done
   echo "owner=$(owner)"

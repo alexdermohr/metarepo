@@ -58,6 +58,10 @@ trap 'rm -rf -- "${TMPDIR:?}"' EXIT
 
 clone_repo(){
   local name="$1"
+  # Sanitize name: allow only alphanumeric, dash, underscore, and dot
+  if [[ ! "$name" =~ ^[A-Za-z0-9._-]+$ ]]; then
+    red "Ungültiger Repository-Name: $name"; exit 1
+  fi
   local url="https://github.com/${OWNER}/${name}.git"
   rm -rf -- "${TMPDIR:?}/$name"
   git -c advice.detachedHead=false clone --depth=1 "$url" "$TMPDIR/$name" >/dev/null 2>&1 || {

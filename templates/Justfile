@@ -1,10 +1,10 @@
 default: help
 help:
-  @echo "Targets: fmt lint test ci"
+	@echo "Targets: fmt lint test ci"
 fmt:
-  @echo "formatting…"; true
+	@echo "formatting…"; true
 lint:
-  @echo "linting…"; true
+	@echo "linting…"; true
 test:
-  @echo "testing…"; true
+	@echo "testing…"; true
 ci: fmt lint test

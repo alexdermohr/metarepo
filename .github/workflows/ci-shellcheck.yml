@@ -12,4 +12,8 @@ jobs:
       - name: Install shellcheck
         run: sudo apt-get update && sudo apt-get install -y shellcheck
       - name: Lint scripts
-        run: shellcheck scripts/*
+        run: |
+          for file in scripts/*; do
+            [ -f "$file" ] || continue
+            shellcheck "$file"
+          done

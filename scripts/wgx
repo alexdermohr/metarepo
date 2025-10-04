@@ -62,7 +62,7 @@ copy_templates_into_repo() {
       echo "No changes for $r"
     fi
   popd >/dev/null
-  rm -rf "$tmp" "$workdir"
+  rm -rf -- "${tmp:?}" "${workdir:?}"
 }
 
 cmd_up() {

@@ -21,7 +21,7 @@ done
 [[ -z "$REPO" ]] && { usage; exit 1; }
 
 TS="$(date +%Y%m%d-%H%M%S)"
-TMPDIR="$(mktemp -d)"; trap 'rm -rf "$TMPDIR"' EXIT
+TMPDIR="$(mktemp -d)"; trap 'rm -rf -- "${TMPDIR:?}"' EXIT
 REPORT="reports/drift-${REPO}-${TS}.md"; mkdir -p reports
 
 git clone --depth=1 "https://github.com/${OWNER}/${REPO}.git" "$TMPDIR/$REPO" >/dev/null 2>&1 || {

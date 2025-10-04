@@ -9,7 +9,7 @@ roles:
 env_priority:
   - devcontainer
   - devbox
-  - mise_direnv
+  - mise/direnv
   - termux
 sync:
   include:

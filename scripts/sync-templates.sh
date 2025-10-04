@@ -93,7 +93,7 @@ copy_from_metarepo_into_repo(){
       templates/*) src="$p" ;;
       *) src="$p" ;;
     esac
-    mapfile -t files < <(printf "%s\n" $src)
+    mapfile -t files < <(compgen -G -- "$src")
     for f in "${files[@]}"; do
       [[ -z "$f" ]] && continue
       rel="${f#templates/}"

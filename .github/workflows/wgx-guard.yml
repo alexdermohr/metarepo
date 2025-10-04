@@ -40,7 +40,9 @@ jobs:
       - name: Run schema-lite check
         run: |
           python - <<'PY'
-          import sys, yaml, pathlib
+          import sys
+          import yaml
+          import pathlib
 
           p = pathlib.Path(".wgx/profile.yml")
           data = yaml.safe_load(p.read_text(encoding="utf-8"))

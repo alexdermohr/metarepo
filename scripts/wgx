@@ -235,10 +235,12 @@ copy_templates_into_repo() {
     "$gh_path" repo clone "${ow}/${r}" "$workdir" -- --depth 1
   else
     if [[ -n "${GH_TOKEN:-}" ]]; then
-      url="https://${GH_TOKEN}@github.com/${ow}/${r}.git"
+      log "Klonen via HTTPS (mit GH_TOKEN credential helper) auf ${ow}/${r}"
+      git -c credential.helper='!f(){ echo username=x; echo password=$GH_TOKEN; };f' clone --depth 1 "https://github.com/${ow}/${r}.git" "$workdir"
+    else
+      log "Klonen via $([[ "$url" == https* ]] && echo "HTTPS" || echo "SSH") auf ${ow}/${r}"
+      git clone --depth 1 "$url" "$workdir"
     fi
-    log "Klonen via $([[ "$url" == https* ]] && echo "HTTPS" || echo "SSH") auf ${ow}/${r}"
-    git clone --depth 1 "$url" "$workdir"
   fi
 
   rsync -a "$tmp/." "$workdir/"

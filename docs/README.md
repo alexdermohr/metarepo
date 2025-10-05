@@ -10,3 +10,4 @@ Für **WGX (Engine)** siehe: https://github.com/alexdermohr/wgx
 - [Runbooks verteilen](./runbooks.md)
 - [WGX-Doku-Stubs](./wgx-stub.md)
 - [Troubleshooting](./troubleshooting.md)
+- [Architecture Decision Records (ADRs)](./adr/README.md)

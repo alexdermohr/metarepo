@@ -1,0 +1,32 @@
+name: adr-lint
+on:
+  pull_request:
+    paths: ['docs/adr/**']
+  workflow_dispatch:
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check filenames & headers
+        run: |
+          fail=0
+          for f in docs/adr/*.md; do
+            bn=$(basename "$f")
+            [[ "$bn" =~ ^[0-9]{3}-.*\.md$ ]] || { echo "::error ::Invalid ADR filename: $bn"; fail=1; }
+            head -n 1 "$f" | grep -q "^# ADR-" || { echo "::error ::Missing H1 ADR header in $bn"; fail=1; }
+          done
+          exit $fail
+      - name: Stale proposed ADRs (>7d)
+        run: |
+          set -e
+          while IFS= read -r -d '' f; do
+            stat=$(grep -m1 '^Status:' "$f" | awk '{print tolower($2)}')
+            date=$(grep -m1 '^Datum:' "$f" | awk '{print $2}')
+            if [ "$stat" = "proposed" ] && [ -n "$date" ]; then
+              days=$(( ( $(date +%s) - $(date -d "$date" +%s) ) / 86400 ))
+              if [ $days -gt 7 ]; then
+                echo "::warning ::ADR $(basename "$f") is Proposed for $days days"
+              fi
+            fi
+          done < <(find docs/adr -maxdepth 1 -name '*.md' -print0)

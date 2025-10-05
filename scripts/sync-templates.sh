@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# c2b: scripts/sync-templates.sh (ideal)
 set -euo pipefail
 shopt -s globstar nullglob
 

@@ -96,6 +96,8 @@ copy_into_metarepo_from_repo(){
 
     for f in "${files[@]}"; do
       # Remove TMPDIR/$name/ prefix for destination path
+      # NOTE: repo_root must remain unquoted in the parameter expansion to keep
+      #       ShellCheck SC2295 satisfied and to ensure correct prefix stripping.
       rel_f="${f#${repo_root}}"
       [[ -z "$rel_f" || "$rel_f" == "$f" ]] && continue
       dest="$PWD/templates/$rel_f"

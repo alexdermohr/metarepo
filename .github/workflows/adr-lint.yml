@@ -11,7 +11,8 @@ jobs:
       - name: Check filenames & headers
         run: |
           fail=0
-          for f in docs/adr/*.md; do
+          shopt -s nullglob
+          for f in docs/adr/[0-9][0-9][0-9]-*.md; do
             bn=$(basename "$f")
             [[ "$bn" =~ ^[0-9]{3}-.*\.md$ ]] || { echo "::error ::Invalid ADR filename: $bn"; fail=1; }
             head -n 1 "$f" | grep -q "^# ADR-" || { echo "::error Missing H1 ADR header in $bn"; fail=1; }

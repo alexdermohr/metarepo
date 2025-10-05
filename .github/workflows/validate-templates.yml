@@ -21,7 +21,7 @@ jobs:
       - name: Check YAMLs
         run: |
           pipx install yq || true
-          find . -type f -name '*.yml' -o -name '*.yaml' | xargs -r -I{} python -c "import yaml,sys; yaml.safe_load(open('{}'))"
+          git ls-files -z -- '*.yml' '*.yaml' | xargs -0 -r -I{} python -c "import yaml,sys; yaml.safe_load(open('{}'))"
       - name: List templates
         run: |
           find templates -type f | sort

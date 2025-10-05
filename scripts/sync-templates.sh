@@ -76,38 +76,34 @@ clone_repo(){
 copy_into_metarepo_from_repo(){
   local name="$1"
   local src=""
-  local -a files=()
-  local prefix=""
+  local repo_root="${TMPDIR}/${name}/"
+
   for p in "${PATTERNS[@]}"; do
     case "$p" in
       templates/*) src="${p#templates/}" ;;
       *) src="$p" ;;
     esac
-    local pattern
-    pattern="$TMPDIR/$name/$src"
-    local -a files=()
-    for match in $pattern; do
-      files+=("$match")
-    done
-    if [[ ${#files[@]} -eq 0 ]]; then
-      continue
-    fi
-    mapfile -t files < <(compgen -G -- "$TMPDIR/$name/$src" 2>/dev/null || true)
 
-    prefix="${TMPDIR}/${name}/"
+    # Alle Treffer für das Muster im Repo einsammeln
+    local -a files=()
+    mapfile -t files < <(compgen -G -- "${TMPDIR}/${name}/${src}" 2>/dev/null || true)
+    [[ ${#files[@]} -eq 0 ]] && continue
+
     for f in "${files[@]}"; do
-      # Remove TMPDIR/$name/ prefix for destination path
-      rel_f="${f#${prefix}}"
+      [[ -z "$f" ]] && continue
+      # Pfad relativ zum Repo-Root bestimmen
+      local rel_f="${f#${repo_root}}"
       [[ -z "$rel_f" || "$rel_f" == "$f" ]] && continue
-      dest="$PWD/templates/$rel_f"
+
+      local dest="$PWD/templates/$rel_f"
       if ((DRYRUN==1)); then
-        echo "↑ (dry-run) Pull: $name :: $rel_f → templates/$rel_f"
+        echo "↑ (dry-run) Pull: ${name} :: ${rel_f} → templates/${rel_f}"
         continue
       fi
       mkdir -p "$(dirname "$dest")"
       cp -a "$f" "$dest"
       git add "templates/$rel_f" || true
-      echo "↑ Pull: $name :: $rel_f → templates/$rel_f"
+      echo "↑ Pull: ${name} :: ${rel_f} → templates/${rel_f}"
     done
   done
 }
@@ -122,18 +118,21 @@ copy_from_metarepo_into_repo(){
       *) src="$p" ;;
     esac
     files=()
-    mapfile -t files < <(compgen -G -- "$src" || true)
+    mapfile -t files < <(compgen -G -- "$src" 2>/dev/null || true)
     for f in "${files[@]}"; do
       [[ -z "$f" ]] && continue
-      rel="${f#templates/}"
-      [[ "$f" == "$rel" ]] && { yellow "Überspringe Nicht-Template: $f"; continue; }
+      local rel="${f#templates/}"
+      if [[ "$f" == "$rel" ]]; then
+        yellow "Überspringe Nicht-Template: $f"
+        continue
+      fi
       if ((DRYRUN==1)); then
-        echo "↓ (dry-run) Push: templates/$rel → $name::$rel"
+        echo "↓ (dry-run) Push: templates/${rel} → ${name}::${rel}"
         continue
       fi
       mkdir -p "$TMPDIR/$name/$(dirname "$rel")"
       cp -a "$f" "$TMPDIR/$name/$rel"
-      echo "↓ Push: templates/$rel → $name::$rel"
+      echo "↓ Push: templates/${rel} → ${name}::${rel}"
     done
   done
   (

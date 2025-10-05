@@ -95,7 +95,7 @@ copy_into_metarepo_from_repo(){
 
     for f in "${files[@]}"; do
       # Remove TMPDIR/$name/ prefix for destination path
-      rel_f="${f#$TMPDIR/$name/}"
+      rel_f="${f#${TMPDIR}/${name}/}"
       [[ -z "$rel_f" || "$rel_f" == "$f" ]] && continue
       dest="$PWD/templates/$rel_f"
       if ((DRYRUN==1)); then

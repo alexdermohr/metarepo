@@ -82,8 +82,17 @@ copy_into_metarepo_from_repo(){
       templates/*) src="${p#templates/}" ;;
       *) src="$p" ;;
     esac
-    files=()
+    local pattern
+    pattern="$TMPDIR/$name/$src"
+    local -a files=()
+    for match in $pattern; do
+      files+=("$match")
+    done
+    if [[ ${#files[@]} -eq 0 ]]; then
+      continue
+    fi
     mapfile -t files < <(compgen -G -- "$TMPDIR/$name/$src" 2>/dev/null || true)
+
     for f in "${files[@]}"; do
       # Remove TMPDIR/$name/ prefix for destination path
       rel_f="${f#$TMPDIR/$name/}"

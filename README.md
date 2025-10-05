@@ -15,10 +15,14 @@ Enthält:
 Siehe `repos.yml`. Standard: alle öffentlichen Repos unter `alexdermohr`, **außer** `vault-gewebe` (privat).
 
 ## Quickstart
-1. `just list` – Repos anzeigen  
-2. `just up` – Templates in alle Repos spiegeln  
-3. `just smoke` – Fleet-Healthcheck (read-only Checks)  
+1. `just list` – Repos anzeigen
+2. `just up` – Templates in alle Repos spiegeln
+3. `just smoke` – Fleet-Healthcheck (read-only Checks)
 4. `just validate` – prüft Template-Konsistenz
+
+### Sync-Run-Logs pflegen
+- `just log-sync` – legt auf Basis von `reports/sync-logs/_TEMPLATE.sync-run.md` einen neuen Report mit aktuellem Datum an. Optional: zusätzliche Flags (z. B. `--repo-scope "repos.yml (static)"`).
+- Reports landen in [`reports/sync-logs/`](reports/sync-logs/) und dokumentieren Blocker & Folgemaßnahmen rund um Flottenläufe.
 
 > Für Dummies: Dieses Repo ist die Schaltzentrale. Hier pflegst du Regeln und Vorlagen **einmal** und verteilst sie dann in alle anderen Repos. So vermeidest du Doppelpflege und Chaos.
 

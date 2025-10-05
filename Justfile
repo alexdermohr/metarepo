@@ -22,6 +22,9 @@ smoke:
 sync:
     scripts/sync-templates.sh
 
+log-sync *args:
+    scripts/create-sync-log.py {{args}}
+
 # Local CI
 ci:
     bash .github/workflows/validate-local.sh 2>/dev/null || true

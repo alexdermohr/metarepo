@@ -2,6 +2,8 @@
 
 # metarepo
 
+**Docs:** siehe [docs/README.md](docs/README.md) · WGX-Master-Doku: https://github.com/alexdermohr/wgx
+
 Zentrale Steuerzentrale (Meta-Layer) für alle Repos von **alexdermohr**.
 Enthält:
 - **WGX-Master**: Referenzdoku + `.wgx/profile.yml`-Template

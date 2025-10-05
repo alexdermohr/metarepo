@@ -1,0 +1,33 @@
+# Fleet-Operations im metarepo
+
+Das **metarepo** ist die Flotten-Leitstelle für alle Repositories unter `alexdermohr`.
+Es hält das Inventar (`repos.yml`), verteilt Templates/CI-Reusables und stößt WGX-Läufe an.
+Die kanonische WGX-Dokumentation bleibt im [WGX-Repository](https://github.com/alexdermohr/wgx).
+
+## Verantwortungsabgrenzung
+- **metarepo**
+  - Kuratiert Fleet-Scope und Standard-Templates (`templates/**`).
+  - Pflegt wiederverwendbare Workflows und Runbooks.
+  - Initiiert Fleet-Zyklen über `just` oder `scripts/wgx`.
+- **WGX-Repo**
+  - Enthält Master-Doku, Policies und Guard-Implementierung.
+  - Liefert die ausführbare Engine; metarepo ruft sie nur auf.
+
+## Fleet-Zyklus (sync → validate → smoke)
+1. **sync** – `just up` oder `./scripts/wgx up`
+   - Spiegelt die Templates/Runbooks in jedes Ziel-Repo.
+   - Nutzt `templates/**` als Quelle der Wahrheit.
+2. **validate** – `just validate` oder `./scripts/wgx validate`
+   - Prüft `repos.yml` auf Schemafehler und verifiziert, dass Pflicht-Templates vorhanden sind.
+   - Optional ergänzen durch `./scripts/wgx-doctor` für Drift-Analysen.
+3. **smoke** – `just smoke` oder `./scripts/wgx smoke`
+   - Triggert die WGX-Smoke-Workflows in jedem Repo (`wgx-smoke.yml`).
+   - Ergebnis dient als Fleet-Gesundheitsindikator.
+
+> 💡 Detailwissen zu WGX-Kommandos, Guards oder Profilen wird **nicht** im metarepo verdoppelt.
+> Link stattdessen direkt auf die Master-Doku im WGX-Repo.
+
+## Betriebsnotizen
+- `reports/` sammelt Ausgaben von Drift-/Doctor-Läufen.
+- Fleet-Änderungen immer mit kurzem Incident-Log in PR-Beschreibung dokumentieren.
+- Für Ad-hoc-Syncs einzelner Repos `scripts/sync-templates.sh --push-to <repo> --pattern "templates/**"` nutzen.

@@ -1,0 +1,16 @@
+name: docs-linkcheck
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  lychee:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install lychee
+        run: cargo install lychee
+      - name: Check documentation links
+        run: lychee --no-progress --exclude-mail --timeout 10s docs/**/*.md

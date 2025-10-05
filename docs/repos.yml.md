@@ -14,13 +14,23 @@ github:
 
 # Statische Fleet-Liste (genutzt, wenn mode: static)
 repos:
-  - weltgewebe
-  - hauski-audio
+  - name: weltgewebe
+    url: https://github.com/alexdermohr/weltgewebe
+    default_branch: main
+  - name: hauski-audio
+    url: https://github.com/alexdermohr/hauski-audio
+    default_branch: main
+    depends_on:
+      - hauski
 
 static:
   include:
-    - semantAH
-    - wgx
+    - name: semantAH
+      url: https://github.com/alexdermohr/semantAH
+      default_branch: main
+    - name: wgx
+      url: https://github.com/alexdermohr/wgx
+      default_branch: main
 ```
 
 ### Felder
@@ -28,8 +38,8 @@ static:
   - `static` (Default): Fleet-Liste kommt aus `repos` + `static.include`.
   - `github`: Fleet wird dynamisch über `gh repo list <owner>` bestimmt.
 - `github.owner`: GitHub Namespace. Wird auch von `scripts/sync-templates.sh --owner-from-env` genutzt.
-- `repos`: Kernmenge der Repositories. Kommentare (`# ...`) werden ignoriert.
-- `static.include`: Ergänzende Repos, z. B. wenn `repos` leer bleiben soll.
+- `repos`: Kernmenge der Repositories. Jeder Eintrag besitzt mindestens das Feld `name`, optional `url`, `default_branch` und `depends_on`.
+- `static.include`: Ergänzende Repos, z. B. wenn `repos` leer bleiben soll. Aufbau identisch zu `repos`.
 
 ## Standard-Policy
 - Fleet umfasst alle **öffentlichen** Repos unter `alexdermohr`.

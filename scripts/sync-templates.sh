@@ -1,18 +1,20 @@
 #!/usr/bin/env bash
+# c2b: scripts/sync-templates.sh (ideal)
 set -euo pipefail
 shopt -s globstar nullglob
 
-red(){ printf "\e[31m%s\e[0m\n" "$*"; }
-green(){ printf "\e[32m%s\e[0m\n" "$*"; }
+red()   { printf "\e[31m%s\e[0m\n" "$*"; }
+green() { printf "\e[32m%s\e[0m\n" "$*"; }
 yellow(){ printf "\e[33m%s\e[0m\n" "$*"; }
+log()   { printf "%s\n" "$*" >&2; }
 
 usage(){
   local default_owner="${GITHUB_OWNER:-alexdermohr}"
   cat <<USG
 Usage:
-  $0 --pull-from <repo-name> --pattern "<glob>" [--pattern "..."] [--dry-run]
-  $0 --push-to   <repo-name> --pattern "<glob>" [--pattern "..."] [--dry-run]
-  $0 --repos-from <file> --pattern "<glob>" [--pattern "..."] [--dry-run]
+  $0 --pull-from <repo-name>  --pattern "<glob>" [--pattern "..."] [--dry-run]
+  $0 --push-to   <repo-name>  --pattern "<glob>" [--pattern "..."] [--dry-run]
+  $0 --repos-from <file>      --pattern "<glob>" [--pattern "..."] [--dry-run]
   # Optional Namespace:
   [--owner <org-or-user>] | [--owner-from-env]  (Default: ${default_owner})
 
@@ -24,6 +26,7 @@ Patterns sind relativ zu den Template-Roots:
 USG
 }
 
+# --- Args / Defaults ----------------------------------------------------------
 REPO_FROM=""; REPO_TO=""
 REPOS_FROM_FILE=""
 PATTERNS=()
@@ -32,14 +35,14 @@ DRYRUN=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --pull-from) REPO_FROM="$2"; shift 2 ;;
-    --push-to)   REPO_TO="$2"; shift 2 ;;
-    --repos-from) REPOS_FROM_FILE="$2"; shift 2 ;;
-    --pattern)   PATTERNS+=("$2"); shift 2 ;;
-    --owner)     OWNER="$2"; shift 2 ;;
+    --pull-from)      REPO_FROM="$2"; shift 2 ;;
+    --push-to)        REPO_TO="$2"; shift 2 ;;
+    --repos-from)     REPOS_FROM_FILE="$2"; shift 2 ;;
+    --pattern)        PATTERNS+=("$2"); shift 2 ;;
+    --owner)          OWNER="$2"; shift 2 ;;
     --owner-from-env) OWNER="${GITHUB_OWNER:?Missing GITHUB_OWNER}"; shift ;;
-    --dry-run)   DRYRUN=1; shift ;;
-    -h|--help)   usage; exit 0 ;;
+    --dry-run)        DRYRUN=1; shift ;;
+    -h|--help)        usage; exit 0 ;;
     *) yellow "Ignoriere unbekanntes Argument: $1"; shift ;;
   esac
 done
@@ -56,23 +59,41 @@ if [[ ${#PATTERNS[@]} -eq 0 ]]; then
   PATTERNS=("templates/.github/workflows/*.yml" "templates/Justfile" "templates/docs/**" "templates/.wgx/profile.yml")
 fi
 
+# --- Tooling Guards -----------------------------------------------------------
+need(){ command -v "$1" >/dev/null 2>&1 || { red "Fehlt: $1"; exit 1; }; }
+check_tools(){
+  need git; need yq
+  # yq v4 (mikefarah) benötigt
+  local v
+  v="$(yq --version 2>/dev/null | grep -oE 'version [0-9.]+' | awk '{print $2}')" || true
+  [[ "$v" =~ ^4\. ]] || { red "yq v4 erforderlich. Gefunden: ${v:-unbekannt}"; exit 1; }
+}
+check_tools
+
 echo "→ OWNER=${OWNER}  DRYRUN=${DRYRUN}"
 
+# --- Tempdir Lifecycle --------------------------------------------------------
 TMPDIR="$(mktemp -d)"
-trap 'rm -rf -- "${TMPDIR:?}"' EXIT
+cleanup(){ [[ -n "${TMPDIR:-}" && -d "$TMPDIR" ]] && rm -rf -- "$TMPDIR"; }
+trap cleanup EXIT INT TERM
+
+# --- Helpers -----------------------------------------------------------------
+sanitize_repo_name(){
+  local name="$1"
+  [[ "$name" =~ ^[A-Za-z0-9._-]+$ ]] || { red "Ungültiger Repository-Name: $name"; exit 1; }
+}
 
 clone_repo(){
   local name="$1"
-  # Sanitize name: allow only alphanumeric, dash, underscore, and dot
-  if [[ ! "$name" =~ ^[A-Za-z0-9._-]+$ ]]; then
-    red "Ungültiger Repository-Name: $name"; exit 1
-  fi
+  sanitize_repo_name "$name"
   local url="https://github.com/${OWNER}/${name}.git"
   rm -rf -- "${TMPDIR:?}/$name"
-  git -c advice.detachedHead=false clone --depth=1 "$url" "$TMPDIR/$name" >/dev/null 2>&1 || {
-    red "Clone fehlgeschlagen: $url"; exit 1; }
+  if ! git -c advice.detachedHead=false clone --depth=1 "$url" "$TMPDIR/$name" >/dev/null 2>&1; then
+    red "Clone fehlgeschlagen: $url"; exit 1
+  fi
 }
 
+# Pull: aus Ziel-Repo ins metarepo/templates spiegeln
 copy_into_metarepo_from_repo(){
   local name="$1"
   local src=""
@@ -81,18 +102,20 @@ copy_into_metarepo_from_repo(){
 
   for p in "${PATTERNS[@]}"; do
     case "$p" in
-      templates/*) src="${p#templates/}" ;;
-      *) src="$p" ;;
+      templates/*) src="${p#templates/}" ;;  # „templates/“ im Ziel-Repo existiert nicht → Muster relativ
+      *)           src="$p" ;;
     esac
 
-    # Alle Treffer für das Muster im Repo einsammeln
+    # Alle Treffer im Ziel-Repo (Quelle) einsammeln
     local -a files=()
     mapfile -t files < <(compgen -G -- "${TMPDIR}/${name}/${src}" 2>/dev/null || true)
     [[ ${#files[@]} -eq 0 ]] && continue
 
     for f in "${files[@]}"; do
       [[ -z "$f" ]] && continue
-      # Pfad relativ zum Repo-Root bestimmen (ShellCheck SC2295)
+
+      # Pfad relativ zum Repo-Root bestimmen
+      # (Pattern intentionally unquoted to satisfy ShellCheck SC2295.)
       local rel_f="${f#${repo_root}}"
       [[ -z "$rel_f" || "$rel_f" == "$f" ]] && continue
 
@@ -109,6 +132,7 @@ copy_into_metarepo_from_repo(){
   done
 }
 
+# Push: aus metarepo/templates in Ziel-Repo spiegeln
 copy_from_metarepo_into_repo(){
   local name="$1"
   local src=""
@@ -116,7 +140,7 @@ copy_from_metarepo_into_repo(){
   for p in "${PATTERNS[@]}"; do
     case "$p" in
       templates/*) src="$p" ;;
-      *) src="$p" ;;
+      *)           src="$p" ;;
     esac
     files=()
     mapfile -t files < <(compgen -G -- "$src" 2>/dev/null || true)
@@ -143,7 +167,7 @@ copy_from_metarepo_into_repo(){
         echo "DRY-RUN: Änderungen erkannt für $name (kein Commit erstellt)."
       else
         git config user.email "codex-bot@local"
-        git config user.name "Codex Bot"
+        git config user.name  "Codex Bot"
         git checkout -b chore/template-sync || true
         git add .
         git commit -m "chore(templates): sync from metarepo" || true
@@ -165,10 +189,7 @@ sync_repos_from_file(){
         elif has("name") then .
         else {name: .}
         end;
-      [
-        (.repos[]? | to_obj),
-        (.static.include[]? | to_obj)
-      ]
+      [ (.repos[]? | to_obj), (.static.include[]? | to_obj) ]
       | flatten
       | unique_by(.name)
       | .[].name
@@ -186,6 +207,7 @@ sync_repos_from_file(){
   done
 }
 
+# --- Entry Points -------------------------------------------------------------
 if [[ -n "$REPO_FROM" ]]; then
   clone_repo "$REPO_FROM"
   copy_into_metarepo_from_repo "$REPO_FROM"

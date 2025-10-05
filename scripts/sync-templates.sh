@@ -80,7 +80,15 @@ copy_into_metarepo_from_repo(){
       templates/*) src="${p#templates/}" ;;
       *) src="$p" ;;
     esac
-    files=( "$TMPDIR/$name"/${src} )
+    local pattern
+    pattern="$TMPDIR/$name/$src"
+    local -a files=()
+    while IFS= read -r -d '' match; do
+      files+=("$match")
+    done < <(find "$TMPDIR/$name" -path "$pattern" -print0 2>/dev/null)
+    if [[ ${#files[@]} -eq 0 ]]; then
+      continue
+    fi
     for f in "${files[@]}"; do
       # Remove TMPDIR/$name/ prefix for destination path
       rel_f="${f#$TMPDIR/$name/}"

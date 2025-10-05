@@ -75,12 +75,15 @@ clone_repo(){
 
 copy_into_metarepo_from_repo(){
   local name="$1"
+  local src=""
+  local -a files=()
   for p in "${PATTERNS[@]}"; do
     case "$p" in
       templates/*) src="${p#templates/}" ;;
       *) src="$p" ;;
     esac
-    files=( "$TMPDIR/$name"/${src} )
+    files=()
+    mapfile -t files < <(compgen -G -- "$TMPDIR/$name/$src")
     for f in "${files[@]}"; do
       # Remove TMPDIR/$name/ prefix for destination path
       rel_f="${f#$TMPDIR/$name/}"
@@ -100,11 +103,14 @@ copy_into_metarepo_from_repo(){
 
 copy_from_metarepo_into_repo(){
   local name="$1"
+  local src=""
+  local -a files=()
   for p in "${PATTERNS[@]}"; do
     case "$p" in
       templates/*) src="$p" ;;
       *) src="$p" ;;
     esac
+    files=()
     mapfile -t files < <(compgen -G -- "$src")
     for f in "${files[@]}"; do
       [[ -z "$f" ]] && continue

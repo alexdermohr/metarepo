@@ -19,8 +19,8 @@ def run_cmd(*args: str) -> str:
         return "n/a"
     except subprocess.CalledProcessError:
         return "n/a"
-    line = completed.stdout.strip().splitlines()
-    return line[0] if line else "n/a"
+    lines = completed.stdout.strip().splitlines()
+    return lines[0] if lines else "n/a"
 
 
 def detect_branch() -> str:

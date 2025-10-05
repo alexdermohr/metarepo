@@ -36,7 +36,7 @@ Kurzer Spickzettel für die häufigsten Stolpersteine rund um Fleet-Sync & WGX.
 
 ## 8. `scripts/sync-templates.sh` meldet „Keine Repos in Datei“
 - Symptom: `--repos-from` liefert keine Ziele.
-- Fix: In `repos.yml` müssen `repos:` **oder** `static.include:` gefüllt sein (Kommentare zählen nicht).
+- Fix: In `repos.yml` müssen unter `repos:` oder `static.include:` Einträge mit mindestens `name:` vorhanden sein (Kommentare zählen nicht).
 
 ## 9. SSH statt HTTPS erwartet
 - Symptom: `scripts/wgx up` schlägt beim Klonen fehl.

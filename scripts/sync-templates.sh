@@ -157,24 +157,23 @@ sync_repos_from_file(){
   local file="$1"
   [[ -f "$file" ]] || { red "Repos-Datei nicht gefunden: $file"; exit 1; }
   mapfile -t REPOS < <(
-    awk '
-      /^[[:space:]]*#/ {next}
-      /^[[:space:]]*repos:/ {section="repos"; next}
-      /^[[:space:]]*static:/ {section="static"; next}
-      /^[[:space:]]*include:/ {section=section ".include"; next}
-      /^[[:space:]]*exclude:/ {section=section ".exclude"; next}
-      /^[[:space:]]*[A-Za-z0-9_-]+:/ {section=$1; gsub(":$","",section); next}
-      /^[[:space:]]*-/ {
-        item=$0
-        sub(/^[[:space:]]*-[[:space:]]*/,"",item)
-        sub(/[[:space:]]+#.*/,"",item)
-        if (item=="") next
-        if (section=="repos" || section=="static.include") print item
-      }
+    yq -r '
+      def to_obj:
+        if type == "string" then {name: .}
+        elif has("name") then .
+        else {name: .}
+        end;
+      [
+        (.repos[]? | to_obj),
+        (.static.include[]? | to_obj)
+      ]
+      | flatten
+      | unique_by(.name)
+      | .[].name
     ' "$file"
   )
   if [[ ${#REPOS[@]} -eq 0 ]]; then
-    yellow "Keine Repos in $file gefunden (erwartet unter repos: oder static.include)."
+    yellow "Keine Repos in $file gefunden (erwartet unter repos:[]/static.include[] mit name-Feld)."
     exit 1
   fi
   for repo in "${REPOS[@]}"; do

@@ -1,9 +1,30 @@
 # Repos, die vom Metarepo Templates bekommen
+mode: static
+
+github:
+  owner: alexdermohr
+
 repos:
-  - weltgewebe
-  - hauski-audio
-  - semantAH
-  - wgx
-  - hauski
+  - name: weltgewebe
+    url: https://github.com/alexdermohr/weltgewebe
+    default_branch: main
+  - name: hauski
+    url: https://github.com/alexdermohr/hauski
+    default_branch: main
+  - name: hauski-audio
+    url: https://github.com/alexdermohr/hauski-audio
+    default_branch: main
+    depends_on:
+      - hauski
+  - name: semantAH
+    url: https://github.com/alexdermohr/semantAH
+    default_branch: main
+  - name: wgx
+    url: https://github.com/alexdermohr/wgx
+    default_branch: main
+  - name: tools
+    url: https://github.com/alexdermohr/tools
+    default_branch: main
+
 # exclude:
 #   - vault-gewebe

@@ -77,6 +77,7 @@ copy_into_metarepo_from_repo(){
   local name="$1"
   local src=""
   local -a files=()
+  local repo_root="${TMPDIR}/${name}/"
   for p in "${PATTERNS[@]}"; do
     case "$p" in
       templates/*) src="${p#templates/}" ;;
@@ -95,7 +96,7 @@ copy_into_metarepo_from_repo(){
 
     for f in "${files[@]}"; do
       # Remove TMPDIR/$name/ prefix for destination path
-      rel_f="${f#${TMPDIR}/${name}/}"
+      rel_f="${f#${repo_root}}"
       [[ -z "$rel_f" || "$rel_f" == "$f" ]] && continue
       dest="$PWD/templates/$rel_f"
       if ((DRYRUN==1)); then

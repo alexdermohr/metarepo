@@ -363,7 +363,7 @@ case "${1:-}" in
     cmd_smoke
     ;;
   *)
-    echo "Usage: $0 {list|up [0|1]|run|doctor|validate|smoke}" >&2
+    echo "Usage: $0 {list|up [0|1]|run [workflow=ci]|doctor|validate|smoke}" >&2
     exit 2
     ;;
 esac

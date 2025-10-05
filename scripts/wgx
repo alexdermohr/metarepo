@@ -204,7 +204,8 @@ copy_templates_into_repo() {
   rsync -a --delete "$ROOT_DIR/templates/" "$tmp/"
   while IFS= read -r -d '' f; do
     if file -bi "$f" | grep -q '^text/'; then
-      sed -i "s/{{REPO_NAME}}/${r}/g" "$f"
+      repo_esc=$(printf '%s' "$r" | sed 's/[&/\]/\\&/g')
+      sed -i "s/{{REPO_NAME}}/${repo_esc}/g" "$f"
     fi
   done < <(find "$tmp" -type f -print0)
 

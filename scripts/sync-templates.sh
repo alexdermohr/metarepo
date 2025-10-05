@@ -76,7 +76,8 @@ clone_repo(){
 copy_into_metarepo_from_repo(){
   local name="$1"
   local src=""
-  local repo_root="${TMPDIR}/${name}/"
+  local repo_root="${TMPDIR}/${name}"
+  repo_root="${repo_root%/}/"
 
   for p in "${PATTERNS[@]}"; do
     case "$p" in

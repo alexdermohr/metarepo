@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install lychee
-        run: cargo install lychee
+      - name: Set up lychee
+        uses: lycheeverse/lychee-action@v1
       - name: Check documentation links
         run: lychee --no-progress --exclude-mail --timeout 10s docs/**/*.md

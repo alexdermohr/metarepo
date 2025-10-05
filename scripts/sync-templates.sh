@@ -83,9 +83,9 @@ copy_into_metarepo_from_repo(){
     local pattern
     pattern="$TMPDIR/$name/$src"
     local -a files=()
-    while IFS= read -r -d '' match; do
+    for match in $pattern; do
       files+=("$match")
-    done < <(find "$TMPDIR/$name" -path "$pattern" -print0 2>/dev/null)
+    done
     if [[ ${#files[@]} -eq 0 ]]; then
       continue
     fi

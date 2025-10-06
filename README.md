@@ -11,6 +11,9 @@ Enthält:
 - **Templates** zum Spiegeln in Subrepos: `templates/**`
 - **CI**: wiederverwendbare Workflows + Template-Validator
 
+> Hinweis: Der `/ask`-Server begrenzt den Parameter `k` serverseitig auf ≤100.
+> Secrets für den Heavy-Workflow: `ASK_ENDPOINT_URL` z. B. `https://host/ask?q=hi&k=3&ns=default`, `METRICS_SNAPSHOT_URL` z. B. `https://host/metrics`.
+
 ## Repos (Quelle)
 Siehe `repos.yml`. Standard: alle öffentlichen Repos unter `alexdermohr`, **außer** `vault-gewebe` (privat).
 

@@ -37,10 +37,44 @@ def parse_scalar(value: str) -> Any:
     return value
 
 
+def strip_comments(raw_line: str) -> str:
+    result_chars: List[str] = []
+    in_single = False
+    in_double = False
+    i = 0
+    while i < len(raw_line):
+        ch = raw_line[i]
+        if ch == "'" and not in_double:
+            if in_single and i + 1 < len(raw_line) and raw_line[i + 1] == "'":
+                result_chars.append("'")
+                i += 2
+                continue
+            in_single = not in_single
+            result_chars.append(ch)
+            i += 1
+            continue
+        if ch == '"' and not in_single:
+            backslashes = 0
+            j = i - 1
+            while j >= 0 and raw_line[j] == "\\":
+                backslashes += 1
+                j -= 1
+            if backslashes % 2 == 0:
+                in_double = not in_double
+            result_chars.append(ch)
+            i += 1
+            continue
+        if ch == "#" and not in_single and not in_double:
+            break
+        result_chars.append(ch)
+        i += 1
+    return "".join(result_chars).rstrip()
+
+
 def preprocess_lines(text: str) -> List[Tuple[int, str]]:
     lines: List[Tuple[int, str]] = []
     for raw_line in text.splitlines():
-        without_comment = raw_line.split("#", 1)[0].rstrip()
+        without_comment = strip_comments(raw_line)
         if not without_comment.strip():
             continue
         indent = len(without_comment) - len(without_comment.lstrip(" "))

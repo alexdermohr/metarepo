@@ -97,8 +97,8 @@ clone_repo(){
 copy_into_metarepo_from_repo(){
   local name="$1"
   local src=""
-  local repo_root="${TMPDIR}/${name}"
-  repo_root="${repo_root%/}/"
+  local repo_root_prefix="${TMPDIR}/${name}"
+  repo_root_prefix="${repo_root_prefix%/}/"
 
   for p in "${PATTERNS[@]}"; do
     case "$p" in
@@ -116,7 +116,7 @@ copy_into_metarepo_from_repo(){
 
       # Pfad relativ zum Repo-Root bestimmen
       # Strip the repo root prefix (pattern intentionally unquoted per ShellCheck SC2295).
-      local rel_f="${f#${repo_root}}"
+      local rel_f="${f#${repo_root_prefix}}"
       [[ -z "$rel_f" || "$rel_f" == "$f" ]] && continue
 
       local dest="$PWD/templates/$rel_f"

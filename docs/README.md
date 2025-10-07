@@ -1,6 +1,6 @@
 # metarepo · Docs-Index (Tower)
 Diese Dokumente beschreiben **Fleet/Themen** des metarepo (Inventar, Verteilung, CI-Reusables, Drift).
-Für **WGX (Engine)** siehe: https://github.com/alexdermohr/wgx
+Für **WGX (Engine)** siehe: https://github.com/heimgewebe/wgx
 
 ## Inhalte
 - [Fleet-Operations](./fleet.md)

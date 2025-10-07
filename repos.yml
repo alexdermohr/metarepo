@@ -2,28 +2,28 @@
 mode: static
 
 github:
-  owner: alexdermohr
+  owner: heimgewebe
 
 repos:
   - name: weltgewebe
-    url: https://github.com/alexdermohr/weltgewebe
+    url: https://github.com/heimgewebe/weltgewebe
     default_branch: main
   - name: hauski
-    url: https://github.com/alexdermohr/hauski
+    url: https://github.com/heimgewebe/hausKI
     default_branch: main
   - name: hauski-audio
-    url: https://github.com/alexdermohr/hauski-audio
+    url: https://github.com/heimgewebe/hauski-audio
     default_branch: main
     depends_on:
       - hauski
   - name: semantAH
-    url: https://github.com/alexdermohr/semantAH
+    url: https://github.com/heimgewebe/semantAH
     default_branch: main
   - name: wgx
-    url: https://github.com/alexdermohr/wgx
+    url: https://github.com/heimgewebe/wgx
     default_branch: main
   - name: tools
-    url: https://github.com/alexdermohr/tools
+    url: https://github.com/heimgewebe/tools
     default_branch: main
 
 # exclude:

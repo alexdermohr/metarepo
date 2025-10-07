@@ -4,7 +4,7 @@ Kurzer Spickzettel für die häufigsten Stolpersteine rund um Fleet-Sync & WGX.
 
 ## 1. `wgx` nicht im PATH
 - Symptom: CI-Job bricht mit `command not found: wgx` ab.
-- Fix: Installationsschritte aus der [WGX-Doku](https://github.com/alexdermohr/wgx) in den Workflow einbauen (z. B. Setup-Script
+- Fix: Installationsschritte aus der [WGX-Doku](https://github.com/heimgewebe/wgx) in den Workflow einbauen (z. B. Setup-Script
   vor den Guard-Checks ausführen).
 
 ## 2. CI ohne `uv`

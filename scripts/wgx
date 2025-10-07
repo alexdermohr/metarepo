@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 REPOS_YML="$ROOT_DIR/repos.yml"
+REPO_CONFIG="$ROOT_DIR/scripts/repo_config.py"
 DRYRUN=${DRYRUN:-0}
 
 _tmp_dirs=()
@@ -21,24 +22,22 @@ die(){ echo "ERR: $*" >&2; exit 1; }
 need(){ command -v "$1" >/dev/null 2>&1 || die "Fehlt: $1"; }
 
 check_tools(){
-  need jq
   need rsync
   need git
-  need yq
   need python3
-  need file
-  local v
-  v="$(yq --version 2>/dev/null | grep -oE 'version [0-9.]+' | awk '{print $2}')"
-  [[ "$v" =~ ^4\. ]] || die "yq v4 erforderlich (mikefarah/yq). Gefunden: ${v:-unbekannt}"
+  local m
+  m="$(mode)"
+  if [[ "$m" == "github" ]]; then
+    need jq
+    need gh
+  fi
 }
 
-check_tools
-
-mode()  { yq -r '.mode // "static"' "$REPOS_YML"; }
+mode()  { python3 "$REPO_CONFIG" --file "$REPOS_YML" mode; }
 owner() {
   local o
-  o="$(yq -r '.github.owner // ""' "$REPOS_YML" 2>/dev/null)"
-  if [[ -n "$o" && "$o" != "null" ]]; then
+  o="$(python3 "$REPO_CONFIG" --file "$REPOS_YML" owner)"
+  if [[ -n "$o" ]]; then
     echo "$o"
     return
   fi
@@ -49,23 +48,11 @@ owner() {
   die "Kein Owner gefunden (repos.yml github.owner oder GITHUB_OWNER)."
 }
 
+check_tools
+
 default_branch_of(){
   local repo="$1"
-  yq -r --arg repo "$repo" '
-    def to_obj:
-      if type == "string" then {name: .}
-      elif has("name") then .
-      else {name: .}
-      end;
-    [
-      (.repos[]? | to_obj),
-      (.static.include[]? | to_obj)
-    ]
-    | flatten
-    | unique_by(.name)
-    | map(select(.name == $repo))
-    | (.[0].default_branch // "main")
-  ' "$REPOS_YML"
+  python3 "$REPO_CONFIG" --file "$REPOS_YML" default-branch "$repo"
 }
 
 repos_from_github() {
@@ -76,20 +63,7 @@ repos_from_github() {
 }
 
 repos_from_static() {
-  yq -r '
-    def to_obj:
-      if type == "string" then {name: .}
-      elif has("name") then .
-      else {name: .}
-      end;
-    [
-      (.repos[]? | to_obj),
-      (.static.include[]? | to_obj)
-    ]
-    | flatten
-    | unique_by(.name)
-    | .[].name
-  ' "$REPOS_YML" 2>/dev/null || true
+  python3 "$REPO_CONFIG" --file "$REPOS_YML" repos || true
 }
 
 repos() {
@@ -107,87 +81,25 @@ ordered_repos() {
     repos | sort
     return
   fi
-
-  yq -o=json '
-    def to_obj:
-      if type == "string" then {name: .}
-      elif has("name") then .
-      else {name: .}
-      end;
-    [
-      (.repos[]? | to_obj),
-      (.static.include[]? | to_obj)
-    ]
-    | flatten
-    | unique_by(.name)
-  ' "$REPOS_YML" \
-  | python3 - <<'PY'
-import json
-import heapq
-import sys
-
-items = json.load(sys.stdin)
-if not isinstance(items, list):
-    sys.exit(0)
-
-graph = {item["name"]: set() for item in items}
-in_degree = {name: 0 for name in graph}
-
-for item in items:
-    deps = item.get("depends_on") or []
-    for dep in deps:
-        if dep not in graph:
-            continue
-        if item["name"] not in graph[dep]:
-            graph[dep].add(item["name"])
-            in_degree[item["name"]] += 1
-
-heap = [name for name, deg in in_degree.items() if deg == 0]
-heapq.heapify(heap)
-order = []
-
-while heap:
-    name = heapq.heappop(heap)
-    order.append(name)
-    for neighbor in sorted(graph[name]):
-        in_degree[neighbor] -= 1
-        if in_degree[neighbor] == 0:
-            heapq.heappush(heap, neighbor)
-
-if len(order) < len(graph):
-    sys.stderr.write("WARN: Zyklische/fehlende Abhängigkeiten erkannt – Teilordnung verwendet.\n")
-    remaining = sorted(set(graph) - set(order))
-    order.extend(remaining)
-
-for name in order:
-    sys.stdout.write(f"{name}\n")
-PY
+  python3 "$REPO_CONFIG" --file "$REPOS_YML" ordered-repos
 }
 
 cmd_list() {
   echo "▶ Fleet-Repos:"
-  ordered_repos | while read -r r; do
-    [[ -z "$r" ]] && continue
-    yq -r --arg repo "$r" '
-      def to_obj:
-        if type == "string" then {name: .}
-        elif has("name") then .
-        else {name: .}
-        end;
-      [
-        (.repos[]? | to_obj),
-        (.static.include[]? | to_obj)
-      ]
-      | flatten
-      | unique_by(.name)
-      | map(select(.name == $repo))
-      | (.[0] // {name: $repo})
-      | " - " + .name
-        + (if has("default_branch") then " [branch: " + .default_branch + "]" else "" end)
-        + (if has("url") then " → " + .url else "" end)
-        + (if has("depends_on") then " (depends_on: " + (.depends_on | join(", ")) + ")" else "" end)
-    ' "$REPOS_YML"
-  done
+  python3 "$REPO_CONFIG" --file "$REPOS_YML" repo-rows \
+    | while IFS=$'\t' read -r name branch url deps; do
+        [[ -z "$name" ]] && continue
+        local line=" - ${name}"
+        [[ -n "$branch" ]] && line+=" [branch: ${branch}]"
+        [[ -n "$url" ]] && line+=" → ${url}"
+        if [[ -n "$deps" ]]; then
+          local formatted_deps
+          formatted_deps=${deps//,/ , }
+          formatted_deps=${formatted_deps// , /, }
+          line+=" (depends_on: ${formatted_deps})"
+        fi
+        echo "$line"
+      done
 }
 
 copy_templates_into_repo() {
@@ -202,12 +114,24 @@ copy_templates_into_repo() {
   fi
 
   rsync -a --delete "$ROOT_DIR/templates/" "$tmp/"
-  while IFS= read -r -d '' f; do
-    if file -bi "$f" | grep -q '^text/'; then
-      repo_esc=$(printf '%s' "$r" | sed 's/[&/\]/\\&/g')
-      sed -i "s/{{REPO_NAME}}/${repo_esc}/g" "$f"
-    fi
-  done < <(find "$tmp" -type f -print0)
+  python3 - "$tmp" "$r" <<'PY'
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+repo = sys.argv[2]
+
+for path in root.rglob('*'):
+    if not path.is_file():
+        continue
+    try:
+        text = path.read_text(encoding='utf-8')
+    except UnicodeDecodeError:
+        continue
+    if '{{REPO_NAME}}' not in text:
+        continue
+    path.write_text(text.replace('{{REPO_NAME}}', repo), encoding='utf-8')
+PY
 
   local ow; ow="$(owner)"
   local url_ssh="git@github.com:${ow}/${r}.git"
@@ -308,15 +232,20 @@ cmd_run() {
 }
 
 cmd_validate() {
-  echo "Check: repos.yml schema"
-  yq -e '.' "$REPOS_YML" >/dev/null
+  echo "Check: repos.yml parse"
+  python3 "$REPO_CONFIG" --file "$REPOS_YML" validate >/dev/null
   echo "OK."
 }
 
 cmd_doctor() {
-  for bin in yq jq rsync git gh; do
+  for bin in python3 rsync git; do
     command -v "$bin" >/dev/null || echo "WARN: $bin fehlt"
   done
+  if [[ "$(mode)" == "github" ]]; then
+    for bin in jq gh; do
+      command -v "$bin" >/dev/null || echo "WARN: $bin fehlt"
+    done
+  fi
   echo "owner=$(owner)"
   echo "mode=$(mode)"
 }

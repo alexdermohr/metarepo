@@ -2,7 +2,7 @@
 
 Das metarepo stellt wiederverwendbare GitHub-Actions-Workflows bereit,
 die Sub-Repos direkt referenzieren. Sie bilden die Fleet-Standards ab und
-verweisen bei Bedarf auf die WGX-Engine im [WGX-Repository](https://github.com/alexdermohr/wgx).
+verweisen bei Bedarf auf die WGX-Engine im [WGX-Repository](https://github.com/heimgewebe/wgx).
 
 ## Verfügbare Workflows (`templates/.github/workflows/`)
 - `wgx-guard.yml` – überprüft das Vorhandensein des WGX-Profils (`.wgx/profile.yml`).
@@ -20,7 +20,7 @@ on:
 
 jobs:
   guard:
-    uses: alexdermohr/metarepo/.github/workflows/wgx-guard.yml@main
+    uses: heimgewebe/metarepo/.github/workflows/wgx-guard.yml@main
 ```
 
 Zusätzliche Beispiel-Einbindung für den Smoke-Workflow:
@@ -28,7 +28,7 @@ Zusätzliche Beispiel-Einbindung für den Smoke-Workflow:
 ```yaml
 jobs:
   smoke:
-    uses: alexdermohr/metarepo/.github/workflows/wgx-smoke.yml@main
+    uses: heimgewebe/metarepo/.github/workflows/wgx-smoke.yml@main
     with:
       run_tests: true
 ```

@@ -2,7 +2,7 @@
 
 Das metarepo liefert nur **Verweise** auf die kanonische WGX-Dokumentation.
 Alle inhaltlichen Details (Policies, CLI-Referenz, Troubleshooting) liegen im
-[WGX-Repository](https://github.com/alexdermohr/wgx).
+[WGX-Repository](https://github.com/heimgewebe/wgx).
 
 ## Zweck des Stubs
 - Einheitliche Platzhalter-Datei (`docs/wgx-konzept.md`) in allen Sub-Repos.
@@ -15,7 +15,7 @@ Sub-Repos sollen sie **nicht** eigenständig erweitern, sondern auf neue Inhalte
 
 ```markdown
 # WGX – Einstieg
-Mehr dazu: https://github.com/alexdermohr/wgx
+Mehr dazu: https://github.com/heimgewebe/wgx
 ```
 
 ## Änderungen am Stub

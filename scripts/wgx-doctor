@@ -5,7 +5,7 @@ usage(){ echo "Usage: $0 --repo <name> [--patterns \"glob1,glob2\"]"; }
 
 REPO=""
 PATTERNS="templates/.github/workflows/*.yml,templates/Justfile,templates/docs/**,templates/.wgx/profile.yml"
-OWNER="${GITHUB_OWNER:-alexdermohr}"
+OWNER="${GITHUB_OWNER:-heimgewebe}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in

@@ -4,9 +4,9 @@
 Metarepo dient als zentraler, lernender Meta-Layer. Es spiegelt **kanonische Templates** (Workflows, Justfile, Docs, WGX-Profile) in Sub-Repos und **zieht Verbesserungen** aus Sub-Repos zurück (dialektisches Lernen).
 
 ## Repos
-- GitHub User: `alexdermohr`
-- Alle Repos öffentlich, **außer** `vault-gewebe` (privat).
-- Primäre Kinder (Beispiele): `weltgewebe`, `hauski-audio`, `semantAH`, `wgx`, `hauski`, `metarepo`.
+- GitHub Organisation: `heimgewebe`
+- Alle Repos öffentlich, **außer** `vault-gewebe` (privat bei `alexdermohr`).
+- Primäre Kinder (Beispiele): `weltgewebe`, `hauski`, `hauski-audio`, `semantAH`, `wgx`, `metarepo`.
 
 ## Rollen
 - **Metarepo**: Quelle der Wahrheit für Templates unter `templates/**`.

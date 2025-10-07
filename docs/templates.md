@@ -26,4 +26,4 @@ Setze immer `--dry-run`, wenn du neue Muster ausprobierst.
 - Nutze Pull-Lernen, um Verbesserungen zurückzuholen.
 - Bei harten Abweichungen neue Fleet-Regel definieren (z. B. repo-spezifische Ausnahme im Ziel-Repo dokumentieren).
 
-> 🔗 Deep-Dive zu WGX-spezifischen Settings siehe [WGX-Doku](https://github.com/alexdermohr/wgx).
+> 🔗 Deep-Dive zu WGX-spezifischen Settings siehe [WGX-Doku](https://github.com/heimgewebe/wgx).

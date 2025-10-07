@@ -9,7 +9,7 @@ yellow(){ printf "\e[33m%s\e[0m\n" "$*"; }
 log()   { printf "%s\n" "$*" >&2; }
 
 usage(){
-  local default_owner="${GITHUB_OWNER:-alexdermohr}"
+  local default_owner="${GITHUB_OWNER:-heimgewebe}"
   cat <<USG
 Usage:
   $0 --pull-from <repo-name>  --pattern "<glob>" [--pattern "..."] [--dry-run]
@@ -30,7 +30,7 @@ USG
 REPO_FROM=""; REPO_TO=""
 REPOS_FROM_FILE=""
 PATTERNS=()
-OWNER="${GITHUB_OWNER:-alexdermohr}"
+OWNER="${GITHUB_OWNER:-heimgewebe}"
 DRYRUN=0
 
 while [[ $# -gt 0 ]]; do

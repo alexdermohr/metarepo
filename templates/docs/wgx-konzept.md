@@ -1,2 +1,2 @@
 # WGX – Einstieg
-Mehr dazu: https://github.com/alexdermohr/wgx
+Mehr dazu: https://github.com/heimgewebe/wgx

@@ -2,9 +2,9 @@
 
 # metarepo
 
-**Docs:** siehe [docs/README.md](docs/README.md) · WGX-Master-Doku: https://github.com/alexdermohr/wgx
+**Docs:** siehe [docs/README.md](docs/README.md) · WGX-Master-Doku: https://github.com/heimgewebe/wgx
 
-Zentrale Steuerzentrale (Meta-Layer) für alle Repos von **alexdermohr**.
+Zentrale Steuerzentrale (Meta-Layer) für alle Repos von **heimgewebe**.
 Enthält:
 - **WGX-Master**: Referenzdoku + `.wgx/profile.yml`-Template
 - **Fleet-Orchestrierung**: `scripts/wgx` (up | list | run | doctor | validate | smoke)
@@ -15,7 +15,7 @@ Enthält:
 > Secrets für den Heavy-Workflow: `ASK_ENDPOINT_URL` z. B. `https://host/ask?q=hi&k=3&ns=default`, `METRICS_SNAPSHOT_URL` z. B. `https://host/metrics`.
 
 ## Repos (Quelle)
-Siehe `repos.yml`. Standard: alle öffentlichen Repos unter `alexdermohr`, **außer** `vault-gewebe` (privat).
+Siehe `repos.yml`. Standard: alle öffentlichen Repos unter `heimgewebe`, **außer** `vault-gewebe` (privat bei `alexdermohr`).
 
 ## Quickstart
 1. `just list` – Repos anzeigen

@@ -10,15 +10,18 @@ mode: static
 
 # GitHub-Owner/Organisation der Fleet
 github:
-  owner: alexdermohr
+  owner: heimgewebe
 
 # Statische Fleet-Liste (genutzt, wenn mode: static)
 repos:
   - name: weltgewebe
-    url: https://github.com/alexdermohr/weltgewebe
+    url: https://github.com/heimgewebe/weltgewebe
+    default_branch: main
+  - name: hauski
+    url: https://github.com/heimgewebe/hausKI
     default_branch: main
   - name: hauski-audio
-    url: https://github.com/alexdermohr/hauski-audio
+    url: https://github.com/heimgewebe/hauski-audio
     default_branch: main
     depends_on:
       - hauski
@@ -26,10 +29,10 @@ repos:
 static:
   include:
     - name: semantAH
-      url: https://github.com/alexdermohr/semantAH
+      url: https://github.com/heimgewebe/semantAH
       default_branch: main
     - name: wgx
-      url: https://github.com/alexdermohr/wgx
+      url: https://github.com/heimgewebe/wgx
       default_branch: main
 ```
 
@@ -42,8 +45,8 @@ static:
 - `static.include`: Ergänzende Repos, z. B. wenn `repos` leer bleiben soll. Aufbau identisch zu `repos`.
 
 ## Standard-Policy
-- Fleet umfasst alle **öffentlichen** Repos unter `alexdermohr`.
-- Ausnahme: `vault-gewebe` bleibt aus Datenschutzgründen ausgeschlossen.
+- Fleet umfasst alle **öffentlichen** Repos unter `heimgewebe`.
+- Ausnahme: `vault-gewebe` bleibt aus Datenschutzgründen ausgeschlossen (liegt weiter bei `alexdermohr`).
 
 ## Praxis-Tipps
 - Für einmalige Pushes `scripts/sync-templates.sh --repos-from repos.yml --pattern "templates/.github/workflows/*.yml"`.

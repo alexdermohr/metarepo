@@ -1,8 +1,8 @@
 # Fleet-Operations im metarepo
 
-Das **metarepo** ist die Flotten-Leitstelle für alle Repositories unter `alexdermohr`.
+Das **metarepo** ist die Flotten-Leitstelle für alle Repositories unter `heimgewebe`.
 Es hält das Inventar (`repos.yml`), verteilt Templates/CI-Reusables und stößt WGX-Läufe an.
-Die kanonische WGX-Dokumentation bleibt im [WGX-Repository](https://github.com/alexdermohr/wgx).
+Die kanonische WGX-Dokumentation bleibt im [WGX-Repository](https://github.com/heimgewebe/wgx).
 
 ## Verantwortungsabgrenzung
 - **metarepo**

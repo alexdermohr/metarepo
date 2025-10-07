@@ -3,277 +3,100 @@ set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 REPOS_YML="$ROOT_DIR/repos.yml"
+REPO_CONFIG="$ROOT_DIR/scripts/repo_config.py"
+
+# Flags / Env
 DRYRUN=${DRYRUN:-0}
 PLAN_LIMIT="${PLAN_LIMIT:-10}"
 WGX_OWNER="${WGX_OWNER:-${GITHUB_OWNER:-}}"
 
+# tmp handling
 _tmp_dirs=()
-cleanup(){
-  local d
-  for d in "${_tmp_dirs[@]:-}"; do
-    [[ -n "$d" && -e "$d" ]] && rm -rf -- "$d"
-  done
-}
+cleanup(){ local d; for d in "${_tmp_dirs[@]:-}"; do [[ -n "$d" && -e "$d" ]] && rm -rf -- "$d"; done; }
 trap cleanup EXIT INT TERM
 
 log(){ printf "%s\n" "$*" >&2; }
-
 die(){ echo "ERR: $*" >&2; exit 1; }
-
 need(){ command -v "$1" >/dev/null 2>&1 || die "Fehlt: $1"; }
 
-if [[ ! -f "$REPOS_YML" ]]; then
-  die "repos.yml fehlt (erwartet: $REPOS_YML)"
-fi
+[[ -f "$REPOS_YML" ]] || die "repos.yml fehlt (erwartet: $REPOS_YML)"
+[[ "$PLAN_LIMIT" =~ ^[0-9]+$ ]] || die "PLAN_LIMIT muss eine nicht-negative Ganzzahl sein"
 
-if ! [[ "$PLAN_LIMIT" =~ ^[0-9]+$ ]]; then
-  die "PLAN_LIMIT muss eine nicht-negative Ganzzahl sein"
-fi
-
-# ---- YAML Helpers (Ruby safe_load) ------------------------------------------------
-_ruby_mode='
-require "yaml"
-data = YAML.safe_load(File.read(ARGV[0]), permitted_classes: [], aliases: true) || {}
-puts(data["mode"] || "static")
-'
-mode() { ruby -e "$_ruby_mode" "$REPOS_YML"; }
+# ---------- Repo config bridge (Python) ----------
+mode()  { python3 "$REPO_CONFIG" --file "$REPOS_YML" mode; }
+owner() {
+  if [[ -n "$WGX_OWNER" ]]; then echo "$WGX_OWNER"; return; fi
+  local o; o="$(python3 "$REPO_CONFIG" --file "$REPOS_YML" owner || true)"
+  if [[ -n "$o" ]]; then echo "$o"; return; fi
+  [[ -n "${GITHUB_OWNER:-}" ]] && { echo "$GITHUB_OWNER"; return; }
+  die "Kein Owner gefunden (repos.yml github.owner, WGX_OWNER oder GITHUB_OWNER)."
+}
+default_branch_of(){ python3 "$REPO_CONFIG" --file "$REPOS_YML" default-branch "$1"; }
 
 check_tools(){
   need rsync
   need git
-  need ruby
   need python3
-  if [[ "$(mode)" == "github" ]]; then
+  local m; m="$(mode)"
+  if [[ "$m" == "github" ]]; then
     need jq
     need gh
   fi
-  # "file" ist optional – wir warnen nur im Doctor.
-  command -v file >/dev/null || echo "WARN: file fehlt"
 }
-
 check_tools
 
-# portable sed (GNU, gsed, oder BSD sed mit -i '')
-_SED_BIN=""
-if command -v sed >/dev/null 2>&1 && sed --version >/dev/null 2>&1; then
-  _SED_BIN="sed"
-elif command -v gsed >/dev/null 2>&1; then
-  _SED_BIN="gsed"
-else
-  _SED_BIN="bsd-sed"
-fi
-
-owner() {
-  if [[ -n "$WGX_OWNER" ]]; then
-    echo "$WGX_OWNER"
-    return
-  fi
-  local o
-  o=$(ruby -e '
-    require "yaml"
-    data = YAML.safe_load(File.read(ARGV[0]), permitted_classes: [], aliases: true) || {}
-    gh = data["github"] || {}
-    puts gh["owner"] if gh["owner"]
-  ' "$REPOS_YML")
-  o=${o//$'\n'/}
-  if [[ -n "$o" ]]; then
-    echo "$o"
-    return
-  fi
-  if [[ -n "${GITHUB_OWNER:-}" ]]; then
-    echo "$GITHUB_OWNER"
-    return
-  fi
-  die "Kein Owner gefunden (repos.yml github.owner, WGX_OWNER oder GITHUB_OWNER)."
-}
-
-default_branch_of(){
-  local repo="$1"
-  ruby -e '
-    require "yaml"
-    repo = ARGV.shift
-    data = YAML.safe_load(File.read(ARGV.shift), permitted_classes: [], aliases: true) || {}
-    def to_obj(x)
-      case x
-      when String then {"name"=>x}
-      when Hash then x
-      else {}
-      end
-    end
-    list = []
-    (data["repos"]||[]).each{|i| list << to_obj(i)}
-    (data.dig("static","include")||[]).each{|i| list << to_obj(i)}
-    ent = list.reverse.find{|i| i["name"]==repo}
-    br = ent && ent["default_branch"]
-    puts(br && !br.empty? ? br : "main")
-  ' "$repo" "$REPOS_YML"
-}
-
+# ---------- Repo sets ----------
 repos_from_github() {
-  local ow="$(owner)"
-  need gh
-  need jq
+  local ow; ow="$(owner)"
+  need gh; need jq
   gh repo list "$ow" --json name,isPrivate,isFork --limit 200 \
-    | jq -r '.[] | select(.isFork == false) | select(.isPrivate == false) | .name'
+    | jq -r '.[] | select(.isFork==false) | select(.isPrivate==false) | .name'
 }
-
-repos_from_static() {
-  ruby -e '
-    require "yaml"
-    data = YAML.safe_load(File.read(ARGV[0]), permitted_classes: [], aliases: true) || {}
-    def to_obj(x)
-      case x
-      when String then {"name"=>x}
-      when Hash then x
-      else {}
-      end
-    end
-    list = []
-    (data["repos"]||[]).each{|i| list << to_obj(i)}
-    (data.dig("static","include")||[]).each{|i| list << to_obj(i)}
-    seen = {}
-    list.each do |i|
-      n = i["name"]; next unless n
-      next if seen[n]
-      seen[n] = true
-      puts n
-    end
-  ' "$REPOS_YML" 2>/dev/null || true
-}
-
-repos() {
+repos_from_static(){ python3 "$REPO_CONFIG" --file "$REPOS_YML" repos || true; }
+repos(){
   local m; m="$(mode)"
-  if [[ "$m" == "github" ]]; then
-    repos_from_github
-  else
-    repos_from_static
-  fi
+  if [[ "$m" == "github" ]]; then repos_from_github; else repos_from_static; fi
 }
-
-ordered_repos() {
+ordered_repos(){
   local m; m="$(mode)"
-  if [[ "$m" == "github" ]]; then
-    repos | sort
-    return
-  fi
-
-  local _repo_graph_json
-  _repo_graph_json=$(ruby -e '
-    require "yaml"; require "json"
-    data = YAML.safe_load(File.read(ARGV[0]), permitted_classes: [], aliases: true) || {}
-    def to_obj(x)
-      case x
-      when String then {"name"=>x}
-      when Hash then x
-      else {}
-      end
-    end
-    list = []
-    (data["repos"]||[]).each{|i| list << to_obj(i)}
-    (data.dig("static","include")||[]).each{|i| list << to_obj(i)}
-    uniq = {}
-    list.each{|i| n=i["name"]; next unless n; uniq[n]=i.merge("name"=>n)}
-    STDOUT.write(JSON.generate(uniq.values))
-  ' "$REPOS_YML")
-  LC_ALL=C python3 - "$_repo_graph_json" <<'PY'
-import json
-import heapq
-import sys
-
-items = json.loads(sys.argv[1])
-if not isinstance(items, list):
-    sys.exit(0)
-
-graph = {item["name"]: set() for item in items}
-in_degree = {name: 0 for name in graph}
-
-for item in items:
-    deps = item.get("depends_on") or []
-    for dep in deps:
-        if dep not in graph:
-            continue
-        if item["name"] not in graph[dep]:
-            graph[dep].add(item["name"])
-            in_degree[item["name"]] += 1
-
-heap = [name for name, deg in in_degree.items() if deg == 0]
-heapq.heapify(heap)
-order = []
-
-while heap:
-    name = heapq.heappop(heap)
-    order.append(name)
-    for neighbor in sorted(graph[name]):
-        in_degree[neighbor] -= 1
-        if in_degree[neighbor] == 0:
-            heapq.heappush(heap, neighbor)
-
-if len(order) < len(graph):
-    sys.stderr.write("WARN: Zyklische/fehlende Abhängigkeiten erkannt – Teilordnung verwendet.\n")
-    remaining = sorted(set(graph) - set(order))
-    order.extend(remaining)
-
-for name in order:
-    sys.stdout.write(f"{name}\n")
-PY
+  if [[ "$m" == "github" ]]; then repos | sort; else python3 "$REPO_CONFIG" --file "$REPOS_YML" ordered-repos; fi
 }
 
-cmd_list() {
+# ---------- Commands ----------
+cmd_list(){
   echo "▶ Fleet-Repos:"
-  ordered_repos | while read -r r; do
-    [[ -z "$r" ]] && continue
-    ruby - "$r" "$REPOS_YML" <<'RUBY'
-require "yaml"
-name = ARGV.shift
-data = YAML.safe_load(File.read(ARGV.shift), permitted_classes: [], aliases: true) || {}
-def to_obj(x)
-  case x
-  when String then {"name"=>x}
-  when Hash then x
-  else {}
-  end
-end
-list = []
-(data["repos"]||[]).each{|i| list << to_obj(i)}
-(data.dig("static","include")||[]).each{|i| list << to_obj(i)}
-e = list.reverse.find{|i| i["name"]==name} || {"name"=>name}
-line = " - #{e["name"]}"
-line << " [branch: #{e["default_branch"]}]" if e["default_branch"]
-line << " → #{e["url"]}" if e["url"]
-if e["depends_on"] && !e["depends_on"].empty?
-  line << " (depends_on: #{e["depends_on"].join(", ")})"
-end
-puts line
-RUBY
-  done
+  python3 "$REPO_CONFIG" --file "$REPOS_YML" repo-rows \
+    | while IFS=$'\t' read -r name branch url deps; do
+        [[ -z "$name" ]] && continue
+        local line=" - ${name}"
+        [[ -n "$branch" ]] && line+=" [branch: ${branch}]"
+        [[ -n "$url" ]] && line+=" → ${url}"
+        if [[ -n "$deps" ]]; then
+          local d="${deps//,/ , }"; d="${d// , /, }"
+          line+=" (depends_on: ${d})"
+        fi
+        echo "$line"
+      done
 }
 
-list_template_files() {
+list_template_files(){
   [[ -d "$ROOT_DIR/templates" ]] || return 1
-  (
-    cd "$ROOT_DIR/templates" || exit 1
-    find . -type f -print | sed 's|^\./||' | LC_ALL=C sort
-  )
+  ( cd "$ROOT_DIR/templates" && find . -type f -print | sed 's|^\./||' | LC_ALL=C sort )
 }
 
-cmd_plan() {
+cmd_plan(){
   echo "▶ Plan (ohne Klonen/Push):"
   if [[ ! -d "$ROOT_DIR/templates" ]]; then
-    echo "  (keine templates/ gefunden)"
-    return 0
+    echo "  (keine templates/ gefunden)"; return 0
   fi
-
   local tmp files_count rest
   tmp="$(mktemp)"; _tmp_dirs+=("$tmp")
   if ! list_template_files >"$tmp"; then
-    echo "  (keine Template-Dateien gefunden)"
-    return 0
+    echo "  (keine Template-Dateien gefunden)"; return 0
   fi
-
   files_count="$(wc -l <"$tmp" | tr -d ' ')"
-  if [[ -z "$files_count" ]] || (( files_count == 0 )); then
-    echo "  (keine Template-Dateien gefunden)"
-    return 0
+  if (( files_count == 0 )); then
+    echo "  (keine Template-Dateien gefunden)"; return 0
   fi
 
   ordered_repos | while read -r repo; do
@@ -283,76 +106,59 @@ cmd_plan() {
     if (( PLAN_LIMIT > 0 )); then
       head -n "$PLAN_LIMIT" "$tmp" | sed 's/^/     - /'
       rest=$((files_count - PLAN_LIMIT))
-      if (( rest > 0 )); then
-        printf '     … (+%d weitere)\n' "$rest"
-      fi
+      (( rest > 0 )) && printf '     … (+%d weitere)\n' "$rest"
     else
       sed 's/^/     - /' "$tmp"
     fi
   done
 }
 
-copy_templates_into_repo() {
+copy_templates_into_repo(){
   local r="$1"
-  local tmp workdir
-  tmp="$(mktemp -d)"; _tmp_dirs+=("$tmp")
-  workdir="$(mktemp -d)"; _tmp_dirs+=("$workdir")
+  local tmp workdir; tmp="$(mktemp -d)"; _tmp_dirs+=("$tmp"); workdir="$(mktemp -d)"; _tmp_dirs+=("$workdir")
 
   if [[ ! -d "$ROOT_DIR/templates" ]]; then
-    echo "Keine templates/ gefunden – skip $r"
-    return 0
+    echo "Keine templates/ gefunden – skip $r"; return 0
   fi
 
   rsync -a --delete "$ROOT_DIR/templates/" "$tmp/"
-  while IFS= read -r -d '' f; do
-    local is_text=1
-    if command -v file >/dev/null 2>&1; then
-      if ! file -bi "$f" | grep -q '^text/'; then
-        is_text=0
-      fi
-    elif ! grep -Iq . "$f"; then
-      is_text=0
-    fi
-    if (( is_text )); then
-      repo_esc=$(printf '%s' "$r" | sed 's/[|&\\]/\\&/g')
-      if [[ "$_SED_BIN" == "bsd-sed" ]]; then
-        sed -i '' "s|{{REPO_NAME}}|${repo_esc}|g" "$f"
-      else
-        "$_SED_BIN" -i "s|{{REPO_NAME}}|${repo_esc}|g" "$f"
-      fi
-    fi
-  done < <(find "$tmp" -type f -print0)
 
-  local ow; ow="$(owner)"
-  local url_ssh="git@github.com:${ow}/${r}.git"
-  local url_https="https://github.com/${ow}/${r}.git"
-  local url="$url_ssh"
-  local ssh_ok=0
-  local gh_path=""
+  # {{REPO_NAME}} → repo (nur Textdateien; binär wird übersprungen via UnicodeDecodeError)
+  python3 - "$tmp" "$r" <<'PY'
+import sys
+from pathlib import Path
+root = Path(sys.argv[1]); repo = sys.argv[2]
+for p in root.rglob('*'):
+    if not p.is_file(): continue
+    try:
+        t = p.read_text(encoding='utf-8')
+    except UnicodeDecodeError:
+        continue
+    if '{{REPO_NAME}}' in t:
+        p.write_text(t.replace('{{REPO_NAME}}', repo), encoding='utf-8')
+PY
 
-  if command -v gh >/dev/null 2>&1; then
-    gh_path="$(command -v gh)"
-  fi
+  local ow url_ssh url_https url ssh_ok gh_path
+  ow="$(owner)"
+  url_ssh="git@github.com:${ow}/${r}.git"
+  url_https="https://github.com/${ow}/${r}.git"
+  url="$url_ssh"; ssh_ok=0; gh_path=""
 
+  command -v gh >/dev/null 2>&1 && gh_path="$(command -v gh)"
   if command -v ssh >/dev/null 2>&1; then
-    if ssh -o BatchMode=yes -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
-      ssh_ok=1
-    fi
+    if ssh -o BatchMode=yes -T git@github.com 2>&1 | grep -q "successfully authenticated"; then ssh_ok=1; fi
   fi
-
-  if (( ! ssh_ok )); then
-    url="$url_https"
-  fi
+  (( ! ssh_ok )) && url="$url_https"
 
   if [[ -n "${GH_TOKEN:-}" && -n "$gh_path" ]]; then
     log "Klonen via gh auf ${ow}/${r}"
     "$gh_path" repo clone "${ow}/${r}" "$workdir" -- --depth 1
   else
     if [[ -n "${GH_TOKEN:-}" ]]; then
-      log "Klonen via HTTPS (mit GH_TOKEN credential helper) auf ${ow}/${r}"
-      git -c credential.helper='!f(){ echo username=x; echo password=$GH_TOKEN; };f' clone --depth 1 "https://github.com/${ow}/${r}.git" "$workdir"
+      log "Klonen via HTTPS (mit GH_TOKEN helper) auf ${ow}/${r}"
+      git -c credential.helper='!f(){ echo username=x; echo password=$GH_TOKEN; };f' clone --depth 1 "$url_https" "$workdir"
     else
-      log "Klonen via $([[ "$url" == https* ]] && echo "HTTPS" || echo "SSH") auf ${ow}/${r}"
+      log "Klonen via $([[ "$url" == https* ]] && echo HTTPS || echo SSH) auf ${ow}/${r}"
       git clone --depth 1 "$url" "$workdir"
     fi
   fi
@@ -371,18 +177,9 @@ copy_templates_into_repo() {
         git -c user.email="codex-bot@local" -c user.name="Codex Bot" commit -m "chore(wgx): sync templates from metarepo"
         git push -u origin "$branch"
         if [[ -n "$gh_path" ]]; then
-          local base_branch
-          base_branch="$(default_branch_of "$r")"
-          local gh_args=(
-            pr create
-            --fill
-            --title "chore(wgx): sync templates from metarepo"
-            --body "Automatischer WGX-Sync aus dem metarepo."
-            --base "${base_branch:-main}"
-          )
-          if [[ "${WGX_PR_DRAFT:-0}" == "1" ]]; then
-            gh_args+=(--draft)
-          fi
+          local base_branch; base_branch="$(default_branch_of "$r")"
+          local gh_args=(pr create --fill --title "chore(wgx): sync templates from metarepo" --body "Automatischer WGX-Sync aus dem metarepo." --base "${base_branch:-main}")
+          [[ "${WGX_PR_DRAFT:-0}" == "1" ]] && gh_args+=(--draft)
           "$gh_path" "${gh_args[@]}" || true
         else
           echo "Hinweis: gh fehlt – PR bitte manuell öffnen."
@@ -392,14 +189,10 @@ copy_templates_into_repo() {
       echo "No changes for $r"
     fi
   popd >/dev/null
-
-  rm -rf -- "$tmp" "$workdir"
 }
 
-cmd_up() {
-  if (( DRYRUN == 1 )); then
-    echo "⚑ Dry-run aktiv – keine Commits oder Pushes."
-  fi
+cmd_up(){
+  (( DRYRUN == 1 )) && echo "⚑ Dry-run aktiv – keine Commits oder Pushes."
   ordered_repos | while read -r r; do
     [[ -z "$r" ]] && continue
     echo "▸ Sync $r"
@@ -407,7 +200,7 @@ cmd_up() {
   done
 }
 
-cmd_run() {
+cmd_run(){
   local target="${1:-ci}"
   need gh
   ordered_repos | while read -r r; do
@@ -421,74 +214,39 @@ cmd_run() {
   done
 }
 
-cmd_validate() {
-  echo "Check: repos.yml schema"
-  ruby -e 'require "yaml"; YAML.safe_load(File.read(ARGV[0]), permitted_classes: [], aliases: true)' "$REPOS_YML" >/dev/null
+cmd_validate(){
+  echo "Check: repos.yml parse"
+  python3 "$REPO_CONFIG" --file "$REPOS_YML" validate >/dev/null
   echo "OK."
 }
 
-cmd_doctor() {
-  for bin in ruby rsync git; do
-    command -v "$bin" >/dev/null || echo "WARN: $bin fehlt"
-  done
+cmd_doctor(){
+  for bin in python3 rsync git; do command -v "$bin" >/dev/null || echo "WARN: $bin fehlt"; done
   if [[ "$(mode)" == "github" ]]; then
-    for bin in jq gh; do
-      command -v "$bin" >/dev/null || echo "WARN: $bin fehlt"
-    done
+    for bin in jq gh; do command -v "$bin" >/dev/null || echo "WARN: $bin fehlt"; done
   fi
-  command -v file >/dev/null || echo "WARN: file fehlt"
   echo "owner=$(owner)"
   echo "mode=$(mode)"
   echo "PLAN_LIMIT=${PLAN_LIMIT}"
-  if command -v gh >/dev/null 2>&1; then gh auth status || true; fi
+  command -v gh >/dev/null 2>&1 && gh auth status || true
 }
 
-cmd_smoke() {
-  local count
-  count="$(ordered_repos | sed '/^$/d' | wc -l | tr -d ' ')"
+cmd_smoke(){
+  local count; count="$(ordered_repos | sed '/^$/d' | wc -l | tr -d ' ')"
   echo "Repos in scope: ${count:-0}"
 }
 
 case "${1:-}" in
-  list)
-    cmd_list
-    ;;
-  plan)
-    cmd_plan
-    ;;
-  up)
-    shift || true
-    old_dryrun=$DRYRUN
-    if [[ -n "${1:-}" ]]; then
-      case "$1" in
-        0|1)
-          DRYRUN=$1
-          shift || true
-          ;;
-        *)
-          echo "Usage: $0 up [0|1]" >&2
-          exit 2
-          ;;
-      esac
-    fi
-    cmd_up
-    DRYRUN=$old_dryrun
-    ;;
-  run)
-    shift
-    cmd_run "${1:-ci}"
-    ;;
-  doctor)
-    cmd_doctor
-    ;;
-  validate)
-    cmd_validate
-    ;;
-  smoke)
-    cmd_smoke
-    ;;
-  *)
-    echo "Usage: $0 {list|plan|up [0|1]|run [workflow=ci]|doctor|validate|smoke}" >&2
-    exit 2
-    ;;
+  list)      cmd_list ;;
+  plan)      cmd_plan ;;
+  up)        shift || true; old_dryrun=$DRYRUN
+             if [[ -n "${1:-}" ]]; then
+               case "$1" in 0|1) DRYRUN=$1; shift || true ;; *) echo "Usage: $0 up [0|1]" >&2; exit 2 ;; esac
+             fi
+             cmd_up; DRYRUN=$old_dryrun ;;
+  run)       shift; cmd_run "${1:-ci}" ;;
+  doctor)    cmd_doctor ;;
+  validate)  cmd_validate ;;
+  smoke)     cmd_smoke ;;
+  *)         echo "Usage: $0 {list|plan|up [0|1]|run [workflow=ci]|doctor|validate|smoke}" >&2; exit 2 ;;
 esac

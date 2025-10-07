@@ -4,12 +4,14 @@ set -euo pipefail
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 REPOS_YML="$ROOT_DIR/repos.yml"
 DRYRUN=${DRYRUN:-0}
+PLAN_LIMIT="${PLAN_LIMIT:-10}"
+WGX_OWNER="${WGX_OWNER:-${GITHUB_OWNER:-}}"
 
 _tmp_dirs=()
 cleanup(){
   local d
   for d in "${_tmp_dirs[@]:-}"; do
-    [[ -n "$d" && -d "$d" ]] && rm -rf -- "$d"
+    [[ -n "$d" && -e "$d" ]] && rm -rf -- "$d"
   done
 }
 trap cleanup EXIT INT TERM
@@ -20,25 +22,61 @@ die(){ echo "ERR: $*" >&2; exit 1; }
 
 need(){ command -v "$1" >/dev/null 2>&1 || die "Fehlt: $1"; }
 
+if [[ ! -f "$REPOS_YML" ]]; then
+  die "repos.yml fehlt (erwartet: $REPOS_YML)"
+fi
+
+if ! [[ "$PLAN_LIMIT" =~ ^[0-9]+$ ]]; then
+  die "PLAN_LIMIT muss eine nicht-negative Ganzzahl sein"
+fi
+
+# ---- YAML Helpers (Ruby safe_load) ------------------------------------------------
+_ruby_mode='
+require "yaml"
+data = YAML.safe_load(File.read(ARGV[0]), permitted_classes: [], aliases: true) || {}
+puts(data["mode"] || "static")
+'
+mode() { ruby -e "$_ruby_mode" "$REPOS_YML"; }
+
 check_tools(){
-  need jq
   need rsync
   need git
-  need yq
+  need ruby
   need python3
-  need file
-  local v
-  v="$(yq --version 2>/dev/null | grep -oE 'version [0-9.]+' | awk '{print $2}')"
-  [[ "$v" =~ ^4\. ]] || die "yq v4 erforderlich (mikefarah/yq). Gefunden: ${v:-unbekannt}"
+  if [[ "$(mode)" == "github" ]]; then
+    need jq
+    need gh
+  fi
+  # "file" ist optional – wir warnen nur im Doctor.
+  command -v file >/dev/null || echo "WARN: file fehlt"
 }
 
 check_tools
 
-mode()  { yq -r '.mode // "static"' "$REPOS_YML"; }
+# portable sed (GNU, gsed, oder BSD sed mit -i '')
+_SED_BIN=""
+if command -v sed >/dev/null 2>&1 && sed --version >/dev/null 2>&1; then
+  _SED_BIN="sed"
+elif command -v gsed >/dev/null 2>&1; then
+  _SED_BIN="gsed"
+else
+  _SED_BIN="bsd-sed"
+fi
+
 owner() {
+  if [[ -n "$WGX_OWNER" ]]; then
+    echo "$WGX_OWNER"
+    return
+  fi
   local o
-  o="$(yq -r '.github.owner // ""' "$REPOS_YML" 2>/dev/null)"
-  if [[ -n "$o" && "$o" != "null" ]]; then
+  o=$(ruby -e '
+    require "yaml"
+    data = YAML.safe_load(File.read(ARGV[0]), permitted_classes: [], aliases: true) || {}
+    gh = data["github"] || {}
+    puts gh["owner"] if gh["owner"]
+  ' "$REPOS_YML")
+  o=${o//$'\n'/}
+  if [[ -n "$o" ]]; then
     echo "$o"
     return
   fi
@@ -46,49 +84,60 @@ owner() {
     echo "$GITHUB_OWNER"
     return
   fi
-  die "Kein Owner gefunden (repos.yml github.owner oder GITHUB_OWNER)."
+  die "Kein Owner gefunden (repos.yml github.owner, WGX_OWNER oder GITHUB_OWNER)."
 }
 
 default_branch_of(){
   local repo="$1"
-  yq -r --arg repo "$repo" '
-    def to_obj:
-      if type == "string" then {name: .}
-      elif has("name") then .
-      else {name: .}
-      end;
-    [
-      (.repos[]? | to_obj),
-      (.static.include[]? | to_obj)
-    ]
-    | flatten
-    | unique_by(.name)
-    | map(select(.name == $repo))
-    | (.[0].default_branch // "main")
-  ' "$REPOS_YML"
+  ruby -e '
+    require "yaml"
+    repo = ARGV.shift
+    data = YAML.safe_load(File.read(ARGV.shift), permitted_classes: [], aliases: true) || {}
+    def to_obj(x)
+      case x
+      when String then {"name"=>x}
+      when Hash then x
+      else {}
+      end
+    end
+    list = []
+    (data["repos"]||[]).each{|i| list << to_obj(i)}
+    (data.dig("static","include")||[]).each{|i| list << to_obj(i)}
+    ent = list.reverse.find{|i| i["name"]==repo}
+    br = ent && ent["default_branch"]
+    puts(br && !br.empty? ? br : "main")
+  ' "$repo" "$REPOS_YML"
 }
 
 repos_from_github() {
   local ow="$(owner)"
-  command -v gh >/dev/null 2>&1 || die "GitHub CLI (gh) fehlt."
+  need gh
+  need jq
   gh repo list "$ow" --json name,isPrivate,isFork --limit 200 \
     | jq -r '.[] | select(.isFork == false) | select(.isPrivate == false) | .name'
 }
 
 repos_from_static() {
-  yq -r '
-    def to_obj:
-      if type == "string" then {name: .}
-      elif has("name") then .
-      else {name: .}
-      end;
-    [
-      (.repos[]? | to_obj),
-      (.static.include[]? | to_obj)
-    ]
-    | flatten
-    | unique_by(.name)
-    | .[].name
+  ruby -e '
+    require "yaml"
+    data = YAML.safe_load(File.read(ARGV[0]), permitted_classes: [], aliases: true) || {}
+    def to_obj(x)
+      case x
+      when String then {"name"=>x}
+      when Hash then x
+      else {}
+      end
+    end
+    list = []
+    (data["repos"]||[]).each{|i| list << to_obj(i)}
+    (data.dig("static","include")||[]).each{|i| list << to_obj(i)}
+    seen = {}
+    list.each do |i|
+      n = i["name"]; next unless n
+      next if seen[n]
+      seen[n] = true
+      puts n
+    end
   ' "$REPOS_YML" 2>/dev/null || true
 }
 
@@ -108,25 +157,30 @@ ordered_repos() {
     return
   fi
 
-  yq -o=json '
-    def to_obj:
-      if type == "string" then {name: .}
-      elif has("name") then .
-      else {name: .}
-      end;
-    [
-      (.repos[]? | to_obj),
-      (.static.include[]? | to_obj)
-    ]
-    | flatten
-    | unique_by(.name)
-  ' "$REPOS_YML" \
-  | python3 - <<'PY'
+  local _repo_graph_json
+  _repo_graph_json=$(ruby -e '
+    require "yaml"; require "json"
+    data = YAML.safe_load(File.read(ARGV[0]), permitted_classes: [], aliases: true) || {}
+    def to_obj(x)
+      case x
+      when String then {"name"=>x}
+      when Hash then x
+      else {}
+      end
+    end
+    list = []
+    (data["repos"]||[]).each{|i| list << to_obj(i)}
+    (data.dig("static","include")||[]).each{|i| list << to_obj(i)}
+    uniq = {}
+    list.each{|i| n=i["name"]; next unless n; uniq[n]=i.merge("name"=>n)}
+    STDOUT.write(JSON.generate(uniq.values))
+  ' "$REPOS_YML")
+  LC_ALL=C python3 - "$_repo_graph_json" <<'PY'
 import json
 import heapq
 import sys
 
-items = json.load(sys.stdin)
+items = json.loads(sys.argv[1])
 if not isinstance(items, list):
     sys.exit(0)
 
@@ -168,25 +222,73 @@ cmd_list() {
   echo "▶ Fleet-Repos:"
   ordered_repos | while read -r r; do
     [[ -z "$r" ]] && continue
-    yq -r --arg repo "$r" '
-      def to_obj:
-        if type == "string" then {name: .}
-        elif has("name") then .
-        else {name: .}
-        end;
-      [
-        (.repos[]? | to_obj),
-        (.static.include[]? | to_obj)
-      ]
-      | flatten
-      | unique_by(.name)
-      | map(select(.name == $repo))
-      | (.[0] // {name: $repo})
-      | " - " + .name
-        + (if has("default_branch") then " [branch: " + .default_branch + "]" else "" end)
-        + (if has("url") then " → " + .url else "" end)
-        + (if has("depends_on") then " (depends_on: " + (.depends_on | join(", ")) + ")" else "" end)
-    ' "$REPOS_YML"
+    ruby - "$r" "$REPOS_YML" <<'RUBY'
+require "yaml"
+name = ARGV.shift
+data = YAML.safe_load(File.read(ARGV.shift), permitted_classes: [], aliases: true) || {}
+def to_obj(x)
+  case x
+  when String then {"name"=>x}
+  when Hash then x
+  else {}
+  end
+end
+list = []
+(data["repos"]||[]).each{|i| list << to_obj(i)}
+(data.dig("static","include")||[]).each{|i| list << to_obj(i)}
+e = list.reverse.find{|i| i["name"]==name} || {"name"=>name}
+line = " - #{e["name"]}"
+line << " [branch: #{e["default_branch"]}]" if e["default_branch"]
+line << " → #{e["url"]}" if e["url"]
+if e["depends_on"] && !e["depends_on"].empty?
+  line << " (depends_on: #{e["depends_on"].join(", ")})"
+end
+puts line
+RUBY
+  done
+}
+
+list_template_files() {
+  [[ -d "$ROOT_DIR/templates" ]] || return 1
+  (
+    cd "$ROOT_DIR/templates" || exit 1
+    find . -type f -print | sed 's|^\./||' | LC_ALL=C sort
+  )
+}
+
+cmd_plan() {
+  echo "▶ Plan (ohne Klonen/Push):"
+  if [[ ! -d "$ROOT_DIR/templates" ]]; then
+    echo "  (keine templates/ gefunden)"
+    return 0
+  fi
+
+  local tmp files_count rest
+  tmp="$(mktemp)"; _tmp_dirs+=("$tmp")
+  if ! list_template_files >"$tmp"; then
+    echo "  (keine Template-Dateien gefunden)"
+    return 0
+  fi
+
+  files_count="$(wc -l <"$tmp" | tr -d ' ')"
+  if [[ -z "$files_count" ]] || (( files_count == 0 )); then
+    echo "  (keine Template-Dateien gefunden)"
+    return 0
+  fi
+
+  ordered_repos | while read -r repo; do
+    [[ -z "$repo" ]] && continue
+    echo " - $repo"
+    echo "   files: $files_count"
+    if (( PLAN_LIMIT > 0 )); then
+      head -n "$PLAN_LIMIT" "$tmp" | sed 's/^/     - /'
+      rest=$((files_count - PLAN_LIMIT))
+      if (( rest > 0 )); then
+        printf '     … (+%d weitere)\n' "$rest"
+      fi
+    else
+      sed 's/^/     - /' "$tmp"
+    fi
   done
 }
 
@@ -203,9 +305,21 @@ copy_templates_into_repo() {
 
   rsync -a --delete "$ROOT_DIR/templates/" "$tmp/"
   while IFS= read -r -d '' f; do
-    if file -bi "$f" | grep -q '^text/'; then
-      repo_esc=$(printf '%s' "$r" | sed 's/[&/\]/\\&/g')
-      sed -i "s/{{REPO_NAME}}/${repo_esc}/g" "$f"
+    local is_text=1
+    if command -v file >/dev/null 2>&1; then
+      if ! file -bi "$f" | grep -q '^text/'; then
+        is_text=0
+      fi
+    elif ! grep -Iq . "$f"; then
+      is_text=0
+    fi
+    if (( is_text )); then
+      repo_esc=$(printf '%s' "$r" | sed 's/[|&\\]/\\&/g')
+      if [[ "$_SED_BIN" == "bsd-sed" ]]; then
+        sed -i '' "s|{{REPO_NAME}}|${repo_esc}|g" "$f"
+      else
+        "$_SED_BIN" -i "s|{{REPO_NAME}}|${repo_esc}|g" "$f"
+      fi
     fi
   done < <(find "$tmp" -type f -print0)
 
@@ -295,7 +409,7 @@ cmd_up() {
 
 cmd_run() {
   local target="${1:-ci}"
-  command -v gh >/dev/null 2>&1 || die "GitHub CLI (gh) fehlt."
+  need gh
   ordered_repos | while read -r r; do
     [[ -z "$r" ]] && continue
     echo "▸ $r → $target"
@@ -309,16 +423,24 @@ cmd_run() {
 
 cmd_validate() {
   echo "Check: repos.yml schema"
-  yq -e '.' "$REPOS_YML" >/dev/null
+  ruby -e 'require "yaml"; YAML.safe_load(File.read(ARGV[0]), permitted_classes: [], aliases: true)' "$REPOS_YML" >/dev/null
   echo "OK."
 }
 
 cmd_doctor() {
-  for bin in yq jq rsync git gh; do
+  for bin in ruby rsync git; do
     command -v "$bin" >/dev/null || echo "WARN: $bin fehlt"
   done
+  if [[ "$(mode)" == "github" ]]; then
+    for bin in jq gh; do
+      command -v "$bin" >/dev/null || echo "WARN: $bin fehlt"
+    done
+  fi
+  command -v file >/dev/null || echo "WARN: file fehlt"
   echo "owner=$(owner)"
   echo "mode=$(mode)"
+  echo "PLAN_LIMIT=${PLAN_LIMIT}"
+  if command -v gh >/dev/null 2>&1; then gh auth status || true; fi
 }
 
 cmd_smoke() {
@@ -330,6 +452,9 @@ cmd_smoke() {
 case "${1:-}" in
   list)
     cmd_list
+    ;;
+  plan)
+    cmd_plan
     ;;
   up)
     shift || true
@@ -363,7 +488,7 @@ case "${1:-}" in
     cmd_smoke
     ;;
   *)
-    echo "Usage: $0 {list|up [0|1]|run [workflow=ci]|doctor|validate|smoke}" >&2
+    echo "Usage: $0 {list|plan|up [0|1]|run [workflow=ci]|doctor|validate|smoke}" >&2
     exit 2
     ;;
 esac

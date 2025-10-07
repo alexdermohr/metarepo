@@ -23,6 +23,11 @@ Siehe `repos.yml`. Standard: alle öffentlichen Repos unter `heimgewebe`, **auß
 3. `just smoke` – Fleet-Healthcheck (read-only Checks)
 4. `just validate` – prüft Template-Konsistenz
 
+### WGX-Extras
+- `./scripts/wgx plan` – Offline-Vorschau, welche Dateien aus `templates/` in jedes Repo gespiegelt würden.
+- `PLAN_LIMIT=0 ./scripts/wgx plan` – zeigt alle Dateien pro Repo (Standard 10).
+- `WGX_OWNER=org ./scripts/wgx plan` – Owner/Org überschreiben, falls `repos.yml` keine Angabe enthält.
+
 ### Sync-Run-Logs pflegen
 - `just log-sync` – legt auf Basis von `reports/sync-logs/_TEMPLATE.sync-run.md` einen neuen Report mit aktuellem Datum an. Optional: zusätzliche Flags (z. B. `--repo-scope "repos.yml (static)"`).
 - Reports landen in [`reports/sync-logs/`](reports/sync-logs/) und dokumentieren Blocker & Folgemaßnahmen rund um Flottenläufe.

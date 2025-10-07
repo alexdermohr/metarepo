@@ -115,7 +115,7 @@ copy_into_metarepo_from_repo(){
       [[ -z "$f" ]] && continue
 
       # Pfad relativ zum Repo-Root bestimmen
-      # (Pattern intentionally unquoted to satisfy ShellCheck SC2295.)
+      # (Parameter expansion intentionally unquoted to satisfy ShellCheck SC2295.)
       local rel_f="${f#${repo_root}}"
       [[ -z "$rel_f" || "$rel_f" == "$f" ]] && continue
 

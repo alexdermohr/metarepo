@@ -27,4 +27,4 @@ log-sync *args:
 
 # Local CI
 ci:
-    bash .github/workflows/validate-local.sh 2>/dev/null || true
+    .github/workflows/validate-local.sh

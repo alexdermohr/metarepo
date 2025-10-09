@@ -115,9 +115,9 @@ copy_into_metarepo_from_repo(){
       [[ -z "$f" ]] && continue
 
       # Pfad relativ zum Repo-Root bestimmen
-      # `repo_root` has a trailing slash already, so the prefix strip works without
-      # additional quoting and keeps ShellCheck SC2295 satisfied.
-      local rel_f="${f#${repo_root}}"
+      # `repo_root` has a trailing slash already, so the prefix strip works with
+      # standard quoting and keeps ShellCheck SC2295 satisfied.
+      local rel_f="${f#"${repo_root}"}"
       [[ -z "$rel_f" || "$rel_f" == "$f" ]] && continue
 
       local dest="$PWD/templates/$rel_f"

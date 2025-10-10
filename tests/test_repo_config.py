@@ -23,6 +23,23 @@ class ParseSimpleYamlTests(unittest.TestCase):
             },
         )
 
+    def test_preserves_numeric_like_strings_with_leading_zero(self) -> None:
+        yaml_text = textwrap.dedent(
+            """
+            serial: 08
+            pin: 00123
+            """
+        )
+        parsed = repo_config.parse_simple_yaml(yaml_text)
+        self.assertEqual(
+            parsed,
+            {
+                "serial": "08",
+                "pin": "00123",
+            },
+        )
+        self.assertTrue(all(isinstance(value, str) for value in parsed.values()))
+
 
 if __name__ == "__main__":
     unittest.main()

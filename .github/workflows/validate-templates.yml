@@ -18,10 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check YAMLs
-        run: |
-          pipx install yq || true
-          git ls-files -z -- '*.yml' '*.yaml' | xargs -0 -r -I{} python -c "import yaml,sys; yaml.safe_load(open('{}'))"
-      - name: List templates
-        run: |
-          find templates -type f | sort
+      - name: Install dependencies
+        run: pip install pyyaml
+      - name: Run local validation script
+        run: ./.github/workflows/validate-local.sh

@@ -26,10 +26,12 @@ def parse_scalar(value: str) -> Any:
         return int(value)
     except ValueError:
         pass
-    try:
-        return float(value)
-    except ValueError:
-        pass
+    float_markers = {"nan", "+nan", "-nan", "inf", "+inf", "-inf"}
+    if any(ch in value for ch in ".eE") or lowered in float_markers:
+        try:
+            return float(value)
+        except ValueError:
+            pass
     if (value.startswith("\"") and value.endswith("\"")) or (
         value.startswith("'") and value.endswith("'")
     ):

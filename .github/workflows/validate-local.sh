@@ -2,6 +2,7 @@
 set -euo pipefail
 
 # macOS Bash 3.2 kompatibel: mapfile optional halten
+# Hinweis: Default ist reine *Syntax*-Validierung (kein -e), damit YAML-Roots false/null/0 nicht scheitern.
 shopt -s nullglob
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 YQ_PIN="${ROOT_DIR}/scripts/tools/yq-pin.sh"
@@ -23,6 +24,14 @@ fi
 if [[ -z "${YQ_BIN}" ]]; then
     echo "❌ Kein yq-Binary gefunden, obwohl Sicherung lief."
     exit 1
+fi
+
+# YQ-Validierungs-Argumente:
+# - Standard: ohne -e (nur Parse/Syntax prüfen)
+# - Opt-in:   STRICT_YQ_E=1 setzt -e → Ausdruck muss truthy sein (bricht legitime YAMLs mit root=false/null/0)
+YQ_ARGS=()
+if [[ "${STRICT_YQ_E:-0}" == "1" ]]; then
+    YQ_ARGS+=("-e")
 fi
 
 echo "🔎 Collecting YAML files..."
@@ -47,7 +56,8 @@ else
     echo "🔎 Validating YAML files with ${YQ_BIN}..."
     for file in "${YAML_FILES[@]}"; do
         echo "Checking ${file}"
-        if ! "${YQ_BIN}" eval -e '.' "${ROOT_DIR}/${file}" >/dev/null; then
+        # reine Syntaxprüfung: eval '.' ohne -e; optional -e via STRICT_YQ_E
+        if ! "${YQ_BIN}" eval "${YQ_ARGS[@]}" '.' "${ROOT_DIR}/${file}" >/dev/null; then
             echo "❌ YAML validation failed for ${file}"
             exit 1
         fi

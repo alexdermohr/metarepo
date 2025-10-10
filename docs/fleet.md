@@ -17,8 +17,9 @@ Die kanonische WGX-Dokumentation bleibt im [WGX-Repository](https://github.com/h
 1. **sync** – `just up` oder `./scripts/wgx up`
    - Spiegelt die Templates/Runbooks in jedes Ziel-Repo.
    - Nutzt `templates/**` als Quelle der Wahrheit.
-2. **validate** – `just validate` oder `./scripts/wgx validate`
+2. **validate** – `just wgx:validate` oder `./scripts/wgx validate`
    - Prüft `repos.yml` auf Schemafehler und verifiziert, dass Pflicht-Templates vorhanden sind.
+   - Ergänzend `just validate` für lokale YAML-/Template-Checks (yq v4).
    - Optional ergänzen durch `./scripts/wgx-doctor` für Drift-Analysen.
 3. **smoke** – `just smoke` oder `./scripts/wgx smoke`
    - Triggert die WGX-Smoke-Workflows in jedem Repo (`wgx-smoke.yml`).

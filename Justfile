@@ -1,23 +1,30 @@
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
+alias wgx := "scripts/wgx"
+alias yq := "scripts/tools/yq-pin.sh"
+
+# Tooling guards
+yq:ensure:
+    {{yq}} ensure
+
 # Fleet-Kommandos
 list:
-    scripts/wgx list
+    {{wgx}} list
 
 up:
-    scripts/wgx up
+    {{wgx}} up
 
 run target="smoke":
-    scripts/wgx run {{target}}
+    {{wgx}} run {{target}}
 
 doctor:
-    scripts/wgx doctor
+    {{wgx}} doctor
 
-validate:
-    scripts/wgx validate
+wgx:validate:
+    {{wgx}} validate
 
 smoke:
-    scripts/wgx smoke
+    {{wgx}} smoke
 
 sync:
     scripts/sync-templates.sh
@@ -26,5 +33,8 @@ log-sync *args:
     scripts/create-sync-log.py {{args}}
 
 # Local CI
-ci:
+validate: yq:ensure
     .github/workflows/validate-local.sh
+
+ci:
+    just validate

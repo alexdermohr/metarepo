@@ -21,7 +21,8 @@ Siehe `repos.yml`. Standard: alle öffentlichen Repos unter `heimgewebe`, **auß
 1. `just list` – Repos anzeigen
 2. `just up` – Templates in alle Repos spiegeln
 3. `just smoke` – Fleet-Healthcheck (read-only Checks)
-4. `just validate` – prüft Template-Konsistenz
+4. `just wgx:validate` – prüft Template-Konsistenz via WGX
+5. `just validate` – lokale Validierung (z. B. YAML via mikefarah/yq v4)
 
 ### WGX-Extras
 - `./scripts/wgx plan` – Offline-Vorschau, welche Dateien aus `templates/` in jedes Repo gespiegelt würden.

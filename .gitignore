@@ -2,5 +2,9 @@
 *.swp
 .DS_Store
 .env
+
+# local tooling bins (unpinned / developer-managed)
+tools/bin/
+
 # tmp
 tmp/

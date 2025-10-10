@@ -14,7 +14,7 @@ doctor:
     scripts/wgx doctor
 
 validate:
-    scripts/wgx validate
+    scripts/validate-local.sh
 
 smoke:
     scripts/wgx smoke
@@ -27,4 +27,4 @@ log-sync *args:
 
 # Local CI
 ci:
-    .github/workflows/validate-local.sh
+    scripts/validate-local.sh

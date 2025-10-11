@@ -45,6 +45,11 @@ jobs:
           failed=0
           while IFS= read -r -d '' file; do
             case "$file" in
+              # harte Absicherung: falls der find-Filter jemals versagt,
+              # werden Schema-Dateien hier trotzdem übersprungen
+              *schema.json)
+                continue
+                ;;
               *insights/*|*insights.json)
                 ajv validate -s contracts/insights.schema.json -d "$file" || failed=1
                 ;;
@@ -61,7 +66,13 @@ jobs:
                 ajv validate -s contracts/policy.decision.schema.json -d "$file" || failed=1
                 ;;
             esac
-          done < <(find . -type f \( -name '*.json' -o -name '*.jsonl' \) -print0)
+          # Nur echte Beispieldaten prüfen – Schemas und Vendor-Verzeichnisse explizit ausschließen
+          done < <(find . \
+              -type f \
+              \( -name '*.json' -o -name '*.jsonl' \) \
+              -not -name '*schema.json' \
+              -not -path '*/node_modules/*' \
+              -not -path '*/.git/*' -print0)
           if [ "$failed" -ne 0 ]; then
             echo "::error::One or more payloads failed validation"
             exit 1

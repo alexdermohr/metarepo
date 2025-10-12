@@ -1,15 +1,14 @@
 # Architecture Decision Records (ADRs)
-Dieses Verzeichnis enthält entscheidende Architektur-/Policy-Beschlüsse.
+Kurzer Index der akzeptierten Entscheidungen:
 
-**Workflow:** Proposed → Accepted → Superseded  
-**Owner:** siehe [CODEOWNERS](/.github/CODEOWNERS)
+- [ADR-0001: Contracts v1 & JSONL append-only](./0001-contracts-v1-jsonl.md) — Accepted (2025-10-12)
+- [ADR-0002: Fleet-Rollout via reusable GitHub Actions](./0002-reusable-actions-rollout.md) — Accepted (2025-10-12)
 
-## Aktuelle ADRs
-- [000 – ADR-Governance & Format](./000-adr-governance.md) — **Proposed**
-- [001 – WGX (Engine) vs. metarepo (Tower)](./001-engine-vs-tower.md) — **Proposed**
-- [002 – Fleet-Distribution & Drift-Regeln](./002-distribution-drift.md) — **Proposed**
-- [003 – CI-Reusables & Pinning-Policy](./003-ci-reusables-pinning.md) — **Proposed**
-- [004 – .wgx/profile.yml v1 – Minimal-Schema](./004-wgx-profile-v1.md) — **Proposed**
-- [005 – Evidence-Packs & Link-Health](./005-evidence-linkhealth.md) — **Proposed**
-
-> **Hinweis:** „Accepted“-ADRs sollten zeitnah in den Tower-Docs gespiegelt werden (Links/Reads).
+## Weitere ADRs & Ressourcen
+- [ADR-Governance & Format](./000-adr-governance.md)
+- [WGX (Engine) vs. metarepo (Tower)](./001-engine-vs-tower.md)
+- [Fleet-Distribution & Drift-Regeln](./002-distribution-drift.md)
+- [CI-Reusables & Pinning-Policy](./003-ci-reusables-pinning.md)
+- [.wgx/profile.yml v1 – Minimal-Schema](./004-wgx-profile-v1.md)
+- [Evidence-Packs & Link-Health](./005-evidence-linkhealth.md)
+- [ADR-Template](./000-template.md)

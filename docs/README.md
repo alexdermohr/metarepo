@@ -12,4 +12,7 @@ Für **WGX (Engine)** siehe: https://github.com/heimgewebe/wgx
 - [Troubleshooting](./troubleshooting.md)
 - [Leitlinien](./leitlinien.md)
 - [Heimgewebe — Überblick (Ideales Gesamtsystem)](./heimgewebe-gesamt.md)
+- [Vision & Architekturüberblick](./vision.md)
+- [Architekturdiagramm](./heimgewebe-architektur.mmd)
+- [Datenfluss (Contracts & Artefakte)](./heimgewebe-dataflow.mmd)
 - [Architecture Decision Records (ADRs)](./adr/README.md)

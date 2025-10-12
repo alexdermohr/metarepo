@@ -10,5 +10,6 @@ Für **WGX (Engine)** siehe: https://github.com/heimgewebe/wgx
 - [Runbooks verteilen](./runbooks.md)
 - [WGX-Doku-Stubs](./wgx-stub.md)
 - [Troubleshooting](./troubleshooting.md)
+- [Leitlinien](./leitlinien.md)
 - [Heimgewebe — Überblick (Ideales Gesamtsystem)](./heimgewebe-gesamt.md)
 - [Architecture Decision Records (ADRs)](./adr/README.md)

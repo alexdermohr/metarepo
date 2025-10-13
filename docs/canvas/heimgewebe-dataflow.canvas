@@ -1,0 +1,40 @@
+{
+  "nodes": [
+    { "id": "meta", "text": "metarepo\n(Schemas · Contracts)", "x": -500, "y": -100, "color": "blue" },
+
+    { "id": "semantah", "text": "semantAH\ninsights/today.json", "x": -200, "y": -250, "color": "gray" },
+    { "id": "wgx", "text": "wgx\nmetrics.snapshot.json", "x": -200, "y": -100, "color": "gray" },
+    { "id": "audio", "text": "hausKI-audio\naudio.events", "x": -200, "y": 50, "color": "gray" },
+    { "id": "aussen", "text": "aussensensor\nfeed.jsonl", "x": -200, "y": 200, "color": "gray" },
+
+    { "id": "hauski", "text": "hausKI\n(local state, events.jsonl)", "x": 150, "y": -50, "color": "yellow" },
+    { "id": "heimlern", "text": "heimlern\n{action, score, why}", "x": 400, "y": -50, "color": "green" },
+    { "id": "leitstand", "text": "leitstand\n/data/{domain}.jsonl", "x": 200, "y": 150, "color": "yellow" }
+  ],
+  "edges": [
+    { "from": "meta", "to": "semantah", "label": "insights.schema.json" },
+    { "from": "meta", "to": "wgx", "label": "metrics.snapshot.schema.json" },
+    { "from": "meta", "to": "audio", "label": "audio.events.schema.json" },
+    { "from": "meta", "to": "aussen", "label": "aussen.event.schema.json" },
+    { "from": "meta", "to": "hauski", "label": "event.line.schema.json" },
+    { "from": "meta", "to": "heimlern", "label": "policy.decision.schema.json" },
+
+    { "from": "semantah", "to": "hauski", "label": "insights/today.json" },
+    { "from": "semantah", "to": "leitstand", "label": "insights/today.json" },
+    { "from": "wgx", "to": "hauski", "label": "metrics.json" },
+    { "from": "audio", "to": "hauski", "label": "audio.events" },
+    { "from": "audio", "to": "leitstand", "label": "audio.events" },
+    { "from": "aussen", "to": "leitstand", "label": "feed.jsonl /ingest/aussen" },
+    { "from": "hauski", "to": "heimlern", "label": "policy.decide" },
+    { "from": "heimlern", "to": "hauski", "label": "policy.feedback" },
+    { "from": "hauski", "to": "leitstand", "label": "events.jsonl" }
+  ],
+  "edgesColors": { "default": "#555" },
+  "canvas": { "name": "Heimgewebe Datenfluss", "type": "canvas" },
+  "legend": {
+    "blue": "Meta / Contracts",
+    "gray": "Producer (Wahrnehmung)",
+    "yellow": "Consumer / Prozesse",
+    "green": "Lernen / Entscheidung"
+  }
+}

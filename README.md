@@ -17,6 +17,10 @@ Enthält:
 ## Repos (Quelle)
 Siehe `repos.yml`. Standard: alle öffentlichen Repos unter `heimgewebe`, **außer** `vault-gewebe` (privat bei `alexdermohr`).
 
+## Voraussetzungen
+- **`just`**: Dieses Projekt verwendet `just` als Befehlsausführer. Installiere es auf deinem System. Für Debian/Ubuntu kannst du `sudo apt-get install just` verwenden. Für andere Systeme beachte die [offizielle `just`-Dokumentation](https://github.com/casey/just).
+- **`yq`**: Die Projektskripte laden automatisch eine bestimmte Version von `yq` (`mikefarah/yq`) herunter und verwenden diese. Du musst es nicht systemweit installieren. Solltest du eine inkompatible `yq`-Version in deinem System-PATH haben, werden die Skripte dies korrekt handhaben und die lokale Version priorisieren.
+
 ## Quickstart
 1. `just list` – Repos anzeigen
 2. `just up` – Templates in alle Repos spiegeln

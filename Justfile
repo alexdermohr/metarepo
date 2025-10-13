@@ -1,30 +1,32 @@
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
-alias wgx := "scripts/wgx"
-alias yq := "scripts/tools/yq-pin.sh"
+# --- Aliase -------------------------------------------------------------------
+alias wgx := _wgx
+alias yq  := _yq
 
+# --- Tasks --------------------------------------------------------------------
 # Tooling guards
-yq:ensure:
-    {{yq}} ensure
+yq_ensure:
+    just _yq ensure
 
 # Fleet-Kommandos
 list:
-    {{wgx}} list
+    just _wgx list
 
 up:
-    {{wgx}} up
+    just _wgx up
 
 run target="smoke":
-    {{wgx}} run {{target}}
+    just _wgx run {{target}}
 
 doctor:
-    {{wgx}} doctor
+    just _wgx doctor
 
-wgx:validate:
-    {{wgx}} validate
+wgx_validate:
+    just _wgx validate
 
 smoke:
-    {{wgx}} smoke
+    just _wgx smoke
 
 sync:
     scripts/sync-templates.sh
@@ -33,8 +35,15 @@ log-sync *args:
     scripts/create-sync-log.py {{args}}
 
 # Local CI
-validate: yq:ensure
+validate: yq_ensure
     .github/workflows/validate-local.sh
 
 ci:
     just validate
+
+# --- Interne Rezepte ----------------------------------------------------------
+_wgx *args:
+    @scripts/wgx {{args}}
+
+_yq *args:
+    @scripts/tools/yq-pin.sh {{args}}

@@ -188,7 +188,7 @@ sync_repos_from_file(){
       def to_obj:
         if type == "string" then {name: .}
         elif has("name") then .
-        else {name: .}
+        else empty
         end;
       [ (.repos[]? | to_obj), (.static.include[]? | to_obj) ]
       | flatten

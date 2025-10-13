@@ -130,3 +130,10 @@ Die wichtigsten Artefakte & Verträge:
   Schema: `contracts/event.line.schema.json`
 - **heimlern ↔ hausKI**: `decide(ctx) → {action, score, why}` & `feedback(reward)`  
   Schema: `contracts/policy.decision.schema.json`
+---
+## Canvas-Visualisierungen
+Für eine visuelle Darstellung siehe:
+- [Heimgewebe Architektur (Canvas)](./canvas/heimgewebe-architektur.canvas)
+- [Heimgewebe Datenfluss (Canvas)](./canvas/heimgewebe-dataflow.canvas)
+
+Diese Canvas-Dateien sind in **Obsidian direkt darstellbar** (Datei → Öffnen mit Canvas).

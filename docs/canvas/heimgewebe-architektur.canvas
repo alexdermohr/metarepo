@@ -1,0 +1,42 @@
+{
+  "nodes": [
+    { "id": "meta", "text": "metarepo\n(Control · Contracts · CI)", "x": -400, "y": -100, "color": "blue" },
+    { "id": "tools", "text": "tools\n(Skripte · Utils)", "x": -400, "y": 60, "color": "blue" },
+
+    { "id": "wgx", "text": "wgx\n(System · Backups · Metrics)", "x": -100, "y": -150, "color": "gray" },
+    { "id": "hauski", "text": "hausKI\n(Orchestrator · State · Events)", "x": 200, "y": -100, "color": "yellow" },
+    { "id": "heimlern", "text": "heimlern\n(Lernen · Policies · Why)", "x": 450, "y": -100, "color": "green" },
+    { "id": "semantah", "text": "semantAH\n(Vault · Embeddings · Insights)", "x": 200, "y": 80, "color": "gray" },
+    { "id": "audio", "text": "hausKI-audio\n(Audio · Routing · Latenzen)", "x": 200, "y": 240, "color": "gray" },
+
+    { "id": "leitstand", "text": "leitstand\n(Ingest · Panels · Explain)", "x": 500, "y": 120, "color": "yellow" },
+    { "id": "aussen", "text": "aussensensor\n(Feed · Sensorik)", "x": 700, "y": 180, "color": "yellow" },
+
+    { "id": "welt", "text": "weltgewebe\n(Gemeinschaft · Karten · Güter)\n[externe Sphäre]", "x": 900, "y": 200, "color": "violet" }
+  ],
+  "edges": [
+    { "from": "meta", "to": "wgx" },
+    { "from": "meta", "to": "hauski" },
+    { "from": "meta", "to": "leitstand" },
+    { "from": "wgx", "to": "hauski" },
+    { "from": "hauski", "to": "heimlern" },
+    { "from": "hauski", "to": "leitstand" },
+    { "from": "hauski", "to": "semantah" },
+    { "from": "hauski", "to": "audio" },
+    { "from": "heimlern", "to": "hauski" },
+    { "from": "semantah", "to": "hauski" },
+    { "from": "audio", "to": "hauski" },
+    { "from": "aussen", "to": "leitstand" },
+    { "from": "welt", "to": "aussen", "label": "know-how" },
+    { "from": "aussen", "to": "welt", "label": "insights" }
+  ],
+  "edgesColors": { "default": "#666" },
+  "canvas": { "name": "Heimgewebe Architektur", "type": "canvas" },
+  "legend": {
+    "blue": "Meta / Kontrolle",
+    "gray": "Grundlagen / Wahrnehmung",
+    "yellow": "Prozesse / Ingest",
+    "green": "Ziele / Lernen",
+    "violet": "Externe Ebene"
+  }
+}

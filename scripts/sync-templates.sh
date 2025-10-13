@@ -62,11 +62,11 @@ fi
 # --- Tooling Guards -----------------------------------------------------------
 need(){ command -v "$1" >/dev/null 2>&1 || { red "Fehlt: $1"; exit 1; }; }
 check_tools(){
-  need git; need yq
-  # yq v4 (mikefarah) benötigt
-  local v
-  v="$(yq --version 2>/dev/null | grep -oE 'version [0-9.]+' | awk '{print $2}')" || true
-  [[ "$v" =~ ^4\. ]] || { red "yq v4 erforderlich. Gefunden: ${v:-unbekannt}"; exit 1; }
+  need git
+  if ! ./scripts/tools/yq-pin.sh ensure >/dev/null 2>&1; then
+    red "yq v4 nicht gefunden oder inkompatibel. Bitte ./scripts/tools/yq-pin.sh manuell ausführen."
+    exit 1
+  fi
 }
 check_tools
 
@@ -171,7 +171,7 @@ copy_from_metarepo_into_repo(){
         git config user.name  "Codex Bot"
         git checkout -b chore/template-sync || true
         git add .
-        git commit -m "chore(templates): sync from metarepo" || true
+        git commit -m "chore(templates): sync from metarepo"
         echo "Lokaler Commit erstellt. Bitte PR manuell auf GitHub öffnen."
       fi
     else

@@ -28,6 +28,8 @@ class ParseSimpleYamlTests(unittest.TestCase):
             """
             serial: 08
             pin: 00123
+            offset: -08
+            explicit: +0123
             """
         )
         parsed = repo_config.parse_simple_yaml(yaml_text)
@@ -36,6 +38,8 @@ class ParseSimpleYamlTests(unittest.TestCase):
             {
                 "serial": "08",
                 "pin": "00123",
+                "offset": "-08",
+                "explicit": "+0123",
             },
         )
         self.assertTrue(all(isinstance(value, str) for value in parsed.values()))

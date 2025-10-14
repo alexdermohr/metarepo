@@ -21,7 +21,12 @@ def parse_scalar(value: str) -> Any:
     if lowered in {"false", "no"}:
         return False
     try:
-        if lowered.startswith("0") and len(lowered) > 1:
+        digits = value
+        if digits and digits[0] in "+-":
+            digits_body = digits[1:]
+        else:
+            digits_body = digits
+        if digits_body.startswith("0") and len(digits_body) > 1 and digits_body.isdigit():
             raise ValueError
         return int(value)
     except ValueError:

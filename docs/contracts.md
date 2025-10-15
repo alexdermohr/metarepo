@@ -48,3 +48,11 @@ Die Contracts definieren den gemeinsamen Korridor für alle Fleet-Repos. Jede Pr
 * Heimlern-Policies sind feature-flagged (`policy.enable=false` = Shadow Mode).
 * Rollbacks über Tag `contracts-v1-hotfix` + Migration-Downs in hausKI.
 * Alle lokalen Endpunkte laufen auf `localhost` und senden nur opt-in Outbound Requests.
+
+## Versionierung
+
+### contracts-v1 (Tag-Vorbereitung)
+- **Schemas**: `contracts/*.schema.json` eingefroren für Producer (`semantAH`, `wgx`, `hausKI-audio`, `aussensensor`) und Consumer (`hausKI`, `leitstand`, `heimlern`).
+- **Reusable Workflow**: `.github/workflows/contracts-validate.yml` als CI-Baustein für Sub-Repos (`uses: heimgewebe/metarepo/.github/workflows/contracts-validate.yml@contracts-v1`).
+- **Dokumentation**: Übersicht & Datenflüsse in [`docs/overview.md`](./overview.md) sowie Detailbeschreibung im [Gesamtsystem](./heimgewebe-gesamt.md); Release-Ankündigungen erfolgen über diesen Abschnitt.
+- **Visuals**: Obsidian Canvas (`docs/canvas/*.canvas`) spiegeln Architektur & Event-Flüsse als Ergänzung zu den Schemas.

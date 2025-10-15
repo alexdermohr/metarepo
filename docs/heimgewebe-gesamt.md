@@ -1,5 +1,7 @@
 # Heimgewebe — Überblick (Ideales Gesamtsystem)
 
+> Kurzfassung siehe [`docs/overview.md`](./overview.md); dort sind Rollen, Datenflüsse und Auth-Anker zusammengefasst.
+
 ## Auf einen Blick
 
 - **Ziel:** Lokal-first, erklärbar, selbstverbessernd.

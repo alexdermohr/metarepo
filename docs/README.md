@@ -3,6 +3,7 @@ Diese Dokumente beschreiben **Fleet/Themen** des metarepo (Inventar, Verteilung,
 Für **WGX (Engine)** siehe: https://github.com/heimgewebe/wgx
 
 ## Inhalte
+- [Fleet-Kurzüberblick (Rollen, Flüsse, Auth)](./overview.md)
 - [Fleet-Operations](./fleet.md)
 - [repos.yml – Inventar & Filter](./repos.yml.md)
 - [Templates verteilen & driftfrei halten](./templates.md)
@@ -16,3 +17,7 @@ Für **WGX (Engine)** siehe: https://github.com/heimgewebe/wgx
 - [Architekturdiagramm](./heimgewebe-architektur.mmd)
 - [Datenfluss (Contracts & Artefakte)](./heimgewebe-dataflow.mmd)
 - [Architecture Decision Records (ADRs)](./adr/README.md)
+
+## Visuals (Obsidian Canvas)
+- [Architektur (Canvas)](./canvas/heimgewebe-architektur.canvas)
+- [Datenflüsse (Canvas)](./canvas/heimgewebe-dataflow.canvas)

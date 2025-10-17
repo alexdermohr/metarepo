@@ -23,6 +23,28 @@ version_ok(){
   [[ "${major}" -eq "${REQ_MAJOR}" ]]
 }
 
+download_yq() {
+  log "yq nicht gefunden. Lade v${REQ_MAJOR}.x herunter..."
+  local os
+  os=$(uname -s | tr '[:upper:]' '[:lower:]')
+  local arch
+  arch=$(uname -m)
+  case "${arch}" in
+    x86_64) arch="amd64" ;;
+    aarch64) arch="arm64" ;;
+  esac
+
+  local binary_name="yq_${os}_${arch}"
+  local yq_url="https://github.com/mikefarah/yq/releases/download/v4.30.8/${binary_name}"
+
+  log "Downloading from ${yq_url}"
+  if ! curl -sL "${yq_url}" -o "${YQ_LOCAL}"; then
+    die "Download von yq fehlgeschlagen."
+  fi
+  chmod +x "${YQ_LOCAL}"
+  log "yq erfolgreich nach ${YQ_LOCAL} heruntergeladen."
+}
+
 resolved_yq(){
   if [[ -x "${YQ_LOCAL}" ]]; then
     echo "${YQ_LOCAL}"
@@ -38,16 +60,33 @@ resolved_yq(){
 cmd_ensure(){
   ensure_dir
   local yq_bin
-  if ! yq_bin="$(resolved_yq)"; then
-    die "mikefarah/yq nicht gefunden. Lege ein v${REQ_MAJOR}.x-Binary unter ${YQ_LOCAL} ab oder installiere es systemweit."
-  fi
   local v
-  if ! v="$("${yq_bin}" --version 2>/dev/null | sed -E 's/^yq .* version v?//')"; then
-    die "konnte yq-Version nicht ermitteln"
+  local version_is_ok=false
+
+  if yq_bin="$(resolved_yq)"; then
+    if v="$("${yq_bin}" --version 2>/dev/null | sed -E 's/^yq .* version v?//')"; then
+      if version_ok "${v}"; then
+        version_is_ok=true
+      else
+        log "WARN: Found yq is wrong version: ${v}"
+      fi
+    fi
   fi
-  if ! version_ok "${v}"; then
-    die "yq v${REQ_MAJOR}.x erforderlich, gefunden: ${v}"
+
+  if ! $version_is_ok; then
+    download_yq
+    # After download, resolved_yq should find the local binary first.
+    if ! yq_bin="$(resolved_yq)"; then
+      die "yq nach Download immer noch nicht gefunden."
+    fi
+    if ! v="$("${yq_bin}" --version 2>/dev/null | sed -E 's/^yq .* version v?//')"; then
+        die "konnte yq-Version nach Download nicht ermitteln"
+    fi
+    if ! version_ok "${v}"; then
+        die "Heruntergeladenes yq hat falsche Version: ${v}"
+    fi
   fi
+
   if [[ "${yq_bin}" != "${YQ_LOCAL}" && ! -e "${YQ_LOCAL}" ]]; then
     ln -s -- "${yq_bin}" "${YQ_LOCAL}" || true
   fi

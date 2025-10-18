@@ -1,33 +1,24 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "semantAH insights (daily)",
+  "$id": "https://heimgewebe/contracts/insights.schema.json",
+  "title": "Heimgewebe Review Insight",
   "type": "object",
-  "required": ["ts", "topics"],
+  "additionalProperties": false,
+  "required": ["type","repo","source","file","score","verdict","ingested_at"],
   "properties": {
-    "ts": { "type": "string", "format": "date" },
-    "topics": {
-      "type": "array",
-      "items": {
-        "type": "array",
-        "minItems": 2,
-        "maxItems": 2,
-        "items": [
-          { "type": "string" },
-          { "type": "number", "minimum": 0, "maximum": 1 }
-        ]
-      }
-    },
-    "questions": { "type": "array", "items": { "type": "string" } },
-    "deltas": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["topic", "trend"],
-        "properties": {
-          "topic": { "type": "string" },
-          "trend": { "type": "string", "enum": ["+1", "0", "-1"] }
-        }
-      }
-    }
+    "id":            { "type":"string", "description":"stable hash/id (optional)" },
+    "type":          { "type":"string", "const": "review.insight" },
+    "repo":          { "type":"string", "minLength": 1 },
+    "source":        { "type":"string", "enum": ["hauski","ci","manual"] },
+    "file":          { "type":"string" },
+    "score":         { "type":"integer", "minimum": 0, "maximum": 100 },
+    "verdict":       { "type":"string" },
+    "pr":            { "type":"string" },
+    "tags":          { "type":"array", "items": { "type":"string" } },
+    "ingested_at":   { "type":"string", "format": "date-time" },
+    "schema_version":{ "type":"string" },
+    "source_version":{ "type":"string" },
+    "runner_host":   { "type":"string" },
+    "bucket":        { "type":"string", "enum": ["info","warn","fail"] }
   }
 }

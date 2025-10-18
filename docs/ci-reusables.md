@@ -8,6 +8,7 @@ verweisen bei Bedarf auf die WGX-Engine im [WGX-Repository](https://github.com/h
 - `wgx-guard.yml` – überprüft das Vorhandensein des WGX-Profils (`.wgx/profile.yml`).
 - `wgx-smoke.yml` – ruft den `reusable-ci`-Workflow mit Standard-Inputs auf (Lint ja, Tests nein).
 - `reusable-ci.yml` – generischer CI-Baustein mit optionalen Lint- und Test-Schritten (`just`).
+- `reusable-validate-jsonl.yml` – validiert JSONL-Zeilen gegen ein angegebenes Contracts-Schema (AJV Draft 2020-12), lädt das Schema wahlweise per URL oder lokalem Pfad, kann Formatprüfungen steuern und hängt bei Fehlern ein Artefakt mit den problematischen Zeilen an.
 
 ## Konsum in Sub-Repos
 ```yaml
@@ -32,10 +33,26 @@ jobs:
     with:
       run_tests: true
 ```
-- Verwende immer einen **festen Ref**. Für reproduzierbare Builds **Tag oder Commit-SHA** pinnen.
+- JSONL-Validierung (z. B. für `aussensensor`):
+  ```yaml
+  jobs:
+    validate:
+      uses: heimgewebe/metarepo/.github/workflows/reusable-validate-jsonl.yml@contracts-v1
+      with:
+        jsonl_path: export/feed.jsonl
+        schema_url: https://raw.githubusercontent.com/heimgewebe/metarepo/contracts-v1/contracts/aussen.event.schema.json
+        strict: false
+        validate_formats: true
+  ```
+- Zusätzliche Inputs:
+  - `schema_path`: Liest das Schema direkt aus dem Repo (überschreibt `schema_url`).
+  - `validate_formats`: Steuert Formatprüfungen durch `ajv` (Default `true`).
+- Artefakte mit fehlgeschlagenen Zeilen bleiben sieben Tage verfügbar.
+- Verwende immer einen **festen Ref**. Für reproduzierbare Builds **Tag oder Commit-SHA** pinnen (Actions innerhalb des Workflows sind per SHA fixiert).
   - Beispiel Tag: `@metarepo-ci-v20251005`
   - Beispiel Commit: `@d34db33f5e7c0de...`
 - `reusable-ci.yml` akzeptiert `run_lint`/`run_tests` (Booleans). Weitere Inputs bei Bedarf ergänzen.
+- JSONL-Workflow: `strict: true` aktiviert den strikten AJV-Modus, `strict: false` erlaubt entspanntere Eingaben. Standard ist `false`.
 
 ## Versionierung & Pinning
 - `main` spiegelt den aktuellen Fleet-Kanon.

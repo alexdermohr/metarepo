@@ -114,7 +114,11 @@ def parse_block(lines: List[Tuple[int, str]], start: int, indent: int) -> Tuple[
                 value, i = parse_block(lines, i + 1, indent + 2)
                 sequence.append({key: value})
                 continue
-            if ":" in item_body:
+            colon_index = item_body.find(":")
+            if colon_index != -1 and (
+                colon_index == len(item_body) - 1
+                or item_body[colon_index + 1] in " \t"
+            ):
                 key, raw_value = item_body.split(":", 1)
                 item: Dict[str, Any] = {key.strip(): parse_scalar(raw_value)}
                 has_child = False

@@ -44,6 +44,17 @@ class ParseSimpleYamlTests(unittest.TestCase):
         )
         self.assertTrue(all(isinstance(value, str) for value in parsed.values()))
 
+    def test_sequence_values_with_colons_are_not_interpreted_as_mappings(self) -> None:
+        yaml_text = textwrap.dedent(
+            """
+            links:
+              - https://example.com
+              - ftp://example.org
+            """
+        )
+        parsed = repo_config.parse_simple_yaml(yaml_text)
+        self.assertEqual(parsed, {"links": ["https://example.com", "ftp://example.org"]})
+
 
 if __name__ == "__main__":
     unittest.main()

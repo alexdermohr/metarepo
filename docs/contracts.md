@@ -13,14 +13,31 @@ Die Contracts definieren den gemeinsamen Korridor für alle Fleet-Repos. Jede Pr
 | `contracts/event.line.schema.json` | `hausKI` JSONL Event-Log | Fleet-Debugging, Replays, Append-only Sync |
 | `contracts/policy.decision.schema.json` | `heimlern` Policies | `hausKI` erklärt Entscheidungen („Warum“), `leitstand` zeigt Begründungen |
 
+### `contracts/aussen.event.schema.json`
+
+- **Pflichtfelder:** `type`, `source`; `url` ist Pflicht, wenn `type = "link"`.
+- **Qualität:** `title` und `source` verlangen mindestens ein Zeichen; Tags dürfen keine führenden Leerzeichen enthalten und sind auf 64 Elemente begrenzt.
+- **Metafelder:** `features` und `meta` erlauben beliebige Schlüssel zur Anreicherung (Scoring, Parser-Versionen usw.).
+- **Zeit & Referenzen:** `ts` nutzt ISO-8601 (`date-time`), `url` prüft URI-Format.
+- **ID (optional):** Stabiler Hash (z. B. `sha256(url+ts)`) zur Deduplication.
+
 ## Validierung
 
-* Metarepo stellt das reusable Workflow `contracts-validate` bereit. Sub-Repos binden ihn via
+* JSONL-Feeds (z. B. `aussensensor/export/feed.jsonl`) validierst du mit dem Workflow `.github/workflows/reusable-validate-jsonl.yml`:
   ```yaml
   jobs:
     validate:
-      uses: heimgewebe/metarepo/.github/workflows/contracts-validate.yml@contracts-v1
+      uses: heimgewebe/metarepo/.github/workflows/reusable-validate-jsonl.yml@contracts-v1
+      with:
+        jsonl_path: export/feed.jsonl
+        schema_url: https://raw.githubusercontent.com/heimgewebe/metarepo/contracts-v1/contracts/aussen.event.schema.json
+        strict: false
+        validate_formats: true
   ```
+  - Optional kannst du `schema_path` setzen, um das Schema lokal aus dem Repo zu lesen (Offline-Fall).
+  - `validate_formats` steuert Formatprüfungen (`uri`, `date-time`, ...); Standard ist `true`.
+  - Der Workflow prüft jede Zeile einzeln mit `ajv` (Draft 2020-12), entfernt CRLF, meldet Schema-Verstöße mit Zeilennummer, pinnt genutzte Actions per SHA und hängt die fehlerhaften Zeilen für sieben Tage als Artefakt an.
+  - `strict: true` aktiviert AJV-Strict-Mode; Standard ist `false`, damit Legacy-Felder tolerant eingelesen werden können.
 * Für `wgx` existiert zusätzlich `wgx-metrics`, das neben der Schema-Prüfung optional einen POST an das Fleet-Ingest ausführt.
 
 ## Pflichten für Producer
@@ -53,6 +70,6 @@ Die Contracts definieren den gemeinsamen Korridor für alle Fleet-Repos. Jede Pr
 
 ### contracts-v1 (Tag-Vorbereitung)
 - **Schemas**: `contracts/*.schema.json` eingefroren für Producer (`semantAH`, `wgx`, `hausKI-audio`, `aussensensor`) und Consumer (`hausKI`, `leitstand`, `heimlern`).
-- **Reusable Workflow**: `.github/workflows/contracts-validate.yml` als CI-Baustein für Sub-Repos (`uses: heimgewebe/metarepo/.github/workflows/contracts-validate.yml@contracts-v1`).
+- **Reusable Workflows**: `.github/workflows/reusable-validate-jsonl.yml` für JSONL-Feeds (`uses: heimgewebe/metarepo/.github/workflows/reusable-validate-jsonl.yml@contracts-v1`) und ergänzend `.github/workflows/wgx-metrics.yml` für Snapshot-Checks.
 - **Dokumentation**: Übersicht & Datenflüsse in [`docs/overview.md`](./overview.md) sowie Detailbeschreibung im [Gesamtsystem](./heimgewebe-gesamt.md); Release-Ankündigungen erfolgen über diesen Abschnitt.
 - **Visuals**: Obsidian Canvas (`docs/canvas/*.canvas`) spiegeln Architektur & Event-Flüsse als Ergänzung zu den Schemas.

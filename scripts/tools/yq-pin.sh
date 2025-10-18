@@ -24,7 +24,7 @@ version_ok(){
 }
 
 download_yq() {
-  log "yq nicht gefunden. Lade v${REQ_MAJOR}.x herunter..."
+  log "yq nicht gefunden/inkompatibel. Lade v${REQ_MAJOR}.x herunter..."
   local os
   os=$(uname -s | tr '[:upper:]' '[:lower:]')
   local arch
@@ -37,12 +37,23 @@ download_yq() {
   local binary_name="yq_${os}_${arch}"
   local yq_url="https://github.com/mikefarah/yq/releases/download/v4.30.8/${binary_name}"
 
+  ensure_dir
+
+  local tmp
+  tmp="$(mktemp "${YQ_LOCAL}.dl.XXXXXX")"
   log "Downloading from ${yq_url}"
-  if ! curl -sL "${yq_url}" -o "${YQ_LOCAL}"; then
-    die "Download von yq fehlgeschlagen."
+  if curl -fSL "${yq_url}" -o "${tmp}"; then
+    chmod +x "${tmp}" || true
+    mv -f -- "${tmp}" "${YQ_LOCAL}"
+    log "yq erfolgreich nach ${YQ_LOCAL} heruntergeladen."
+  else
+    rm -f -- "${tmp}"
+    if [[ -x "${YQ_LOCAL}" ]]; then
+      log "Download fehlgeschlagen – benutze vorhandenen Pin unter ${YQ_LOCAL} (offline fallback)."
+    else
+      die "Download von yq fehlgeschlagen und kein nutzbarer Pin vorhanden."
+    fi
   fi
-  chmod +x "${YQ_LOCAL}"
-  log "yq erfolgreich nach ${YQ_LOCAL} heruntergeladen."
 }
 
 resolved_yq(){

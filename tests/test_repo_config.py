@@ -44,6 +44,28 @@ class ParseSimpleYamlTests(unittest.TestCase):
         )
         self.assertTrue(all(isinstance(value, str) for value in parsed.values()))
 
+    def test_allows_nested_blocks_with_deeper_indent(self) -> None:
+        yaml_text = textwrap.dedent(
+            """
+            root:
+                - name: alpha
+                  settings:
+                      enabled: true
+            """
+        )
+        parsed = repo_config.parse_simple_yaml(yaml_text)
+        self.assertEqual(
+            parsed,
+            {
+                "root": [
+                    {
+                        "name": "alpha",
+                        "settings": {"enabled": True},
+                    }
+                ]
+            },
+        )
+
     def test_sequence_values_with_colons_are_not_interpreted_as_mappings(self) -> None:
         yaml_text = textwrap.dedent(
             """
@@ -53,7 +75,10 @@ class ParseSimpleYamlTests(unittest.TestCase):
             """
         )
         parsed = repo_config.parse_simple_yaml(yaml_text)
-        self.assertEqual(parsed, {"links": ["https://example.com", "ftp://example.org"]})
+        self.assertEqual(
+            parsed,
+            {"links": ["https://example.com", "ftp://example.org"]}
+        )
 
 
 if __name__ == "__main__":

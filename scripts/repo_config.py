@@ -89,6 +89,19 @@ def preprocess_lines(text: str) -> List[Tuple[int, str]]:
     return lines
 
 
+def parse_child_block(
+    lines: List[Tuple[int, str]], start: int, parent_indent: int
+) -> Tuple[Any, int]:
+    """Parse a nested block starting at *start* if it is indented relative to parent."""
+
+    if start >= len(lines):
+        return {}, start
+    child_indent = lines[start][0]
+    if child_indent <= parent_indent:
+        return {}, start
+    return parse_block(lines, start, child_indent)
+
+
 def parse_block(lines: List[Tuple[int, str]], start: int, indent: int) -> Tuple[Any, int]:
     mapping: Dict[str, Any] = {}
     sequence: List[Any] | None = None
@@ -106,12 +119,12 @@ def parse_block(lines: List[Tuple[int, str]], start: int, indent: int) -> Tuple[
                 sequence = []
             item_body = content[2:].strip()
             if not item_body:
-                value, i = parse_block(lines, i + 1, indent + 2)
+                value, i = parse_child_block(lines, i + 1, indent)
                 sequence.append(value)
                 continue
             if item_body.endswith(":"):
                 key = item_body[:-1].strip()
-                value, i = parse_block(lines, i + 1, indent + 2)
+                value, i = parse_child_block(lines, i + 1, indent)
                 sequence.append({key: value})
                 continue
             colon_index = item_body.find(":")
@@ -130,7 +143,7 @@ def parse_block(lines: List[Tuple[int, str]], start: int, indent: int) -> Tuple[
                     has_child = True
                     break
                 if has_child:
-                    extra, i = parse_block(lines, i + 1, indent + 2)
+                    extra, i = parse_child_block(lines, i + 1, indent)
                     if not isinstance(extra, dict):
                         raise ValueError("Expected mapping for nested list item")
                     item.update(extra)
@@ -146,7 +159,7 @@ def parse_block(lines: List[Tuple[int, str]], start: int, indent: int) -> Tuple[
             raise ValueError("Cannot mix mapping and sequence at same level")
         if content.endswith(":"):
             key = content[:-1].strip()
-            value, i = parse_block(lines, i + 1, indent + 2)
+            value, i = parse_child_block(lines, i + 1, indent)
             mapping[key] = value
             continue
         if ":" in content:

@@ -17,14 +17,14 @@ repos:
   - name: weltgewebe
     url: https://github.com/heimgewebe/weltgewebe
     default_branch: main
-  - name: hauski
+  - name: hausKI
     url: https://github.com/heimgewebe/hausKI
     default_branch: main
   - name: hauski-audio
     url: https://github.com/heimgewebe/hauski-audio
     default_branch: main
     depends_on:
-      - hauski
+      - hausKI
 
 static:
   include:
@@ -35,6 +35,8 @@ static:
       url: https://github.com/heimgewebe/wgx
       default_branch: main
 ```
+
+> **Hinweis:** Repo-Name: `hausKI` (großes `KI`). Beispiele in Befehlen und Pfaden nutzen **`hausKI`** – Case-sensitive!
 
 ### Felder
 - `mode`

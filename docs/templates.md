@@ -9,6 +9,16 @@ Alle Fleet-Vorlagen leben unter `templates/**`. Sie werden 1:1 in Sub-Repos gesp
 - `templates/docs/**` – Referenzdokumente (z. B. `wgx-konzept.md`, ADR-Template).
 - `templates/Justfile` – Fleet-Justfile mit `just up|validate|smoke`.
 
+## Fleet-Template: Justfile
+Das Template stellt **Fleet-Ziele** bereit und delegiert – falls vorhanden – an `scripts/wgx` im Ziel-Repo:
+
+- `up` → Templates/Profiles anwenden bzw. Repo initialisieren
+- `validate` → lokale Checks (Profiles, YAML, Contracts)
+- `smoke` → leichter Health-Check der Werkzeugkette
+- `fmt`, `lint`, `test`, `ci` → generische Projekt-Kommandos
+
+> Wenn `scripts/wgx` im Ziel-Repo fehlt, geben die Targets einen hilfreichen Hinweis aus.
+
 ## Sync-Strategien
 - **Voll-Sync**: `just up` bzw. `./scripts/wgx up` kopiert sämtliche Templates in jedes Repo.
 - **Selektiv**: `scripts/sync-templates.sh --push-to <repo> --pattern "templates/.github/workflows/*.yml"`.

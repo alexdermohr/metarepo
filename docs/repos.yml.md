@@ -14,29 +14,53 @@ github:
 
 # Statische Fleet-Liste (genutzt, wenn mode: static)
 repos:
-  - name: weltgewebe
-    url: https://github.com/heimgewebe/weltgewebe
+  # --- Core (Fleet) ---
+  - name: metarepo
+    url: https://github.com/heimgewebe/metarepo
     default_branch: main
   - name: hausKI
     url: https://github.com/heimgewebe/hausKI
     default_branch: main
-  - name: hauski-audio
-    url: https://github.com/heimgewebe/hauski-audio
+  - name: hausKI-audio
+    url: https://github.com/heimgewebe/hausKI-audio
     default_branch: main
     depends_on:
       - hausKI
+  - name: heimlern
+    url: https://github.com/heimgewebe/heimlern
+    default_branch: main
+  - name: aussensensor
+    url: https://github.com/heimgewebe/aussensensor
+    default_branch: main
+  - name: leitstand
+    url: https://github.com/heimgewebe/leitstand
+    default_branch: main
+  - name: wgx
+    url: https://github.com/heimgewebe/wgx
+    default_branch: main
+  - name: semantAH
+    url: https://github.com/heimgewebe/semantAH
+    default_branch: main
 
 static:
   include:
-    - name: semantAH
-      url: https://github.com/heimgewebe/semantAH
+    # --- Verwandt (nicht Fleet) ---
+    - name: weltgewebe
+      url: https://github.com/heimgewebe/weltgewebe
       default_branch: main
-    - name: wgx
-      url: https://github.com/heimgewebe/wgx
-      default_branch: main
+    # vault-gewebe (inkl. privat) ist persönlicher Speicher und gehört nicht zur Fleet
 ```
 
 > **Hinweis:** Repo-Name: `hausKI` (großes `KI`). Beispiele in Befehlen und Pfaden nutzen **`hausKI`** – Case-sensitive!
+
+### Status-Empfehlung (optional)
+Erweitere Einträge bei Bedarf um `status: core|related|personal`. Fleet-Tools können damit filtern:
+```yaml
+- name: hausKI
+  status: core
+- name: weltgewebe
+  status: related
+```
 
 ### Felder
 - `mode`

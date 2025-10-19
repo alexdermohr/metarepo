@@ -9,6 +9,7 @@ verweisen bei Bedarf auf die WGX-Engine im [WGX-Repository](https://github.com/h
 - `wgx-smoke.yml` – ruft den `reusable-ci`-Workflow mit Standard-Inputs auf (Lint ja, Tests nein).
 - `reusable-ci.yml` – generischer CI-Baustein mit optionalen Lint- und Test-Schritten (`just`).
 - **Zentraler Reusable:** `.github/workflows/reusable-validate-jsonl.yml` (liegt im metarepo) validiert JSONL-Zeilen gegen Contracts (AJV Draft 2020-12). Consumer-Repos referenzieren ihn via `uses: heimgewebe/metarepo/...`.
+  - **Core-Repos** (z. B. `aussensensor`, `leitstand`, `hausKI`) binden diesen Workflow ein.
 
 ## Konsum in Sub-Repos
 ```yaml

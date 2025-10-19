@@ -1,4 +1,6 @@
 name: docs-linkcheck
+permissions:
+  contents: read
 
 on:
   schedule:

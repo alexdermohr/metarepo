@@ -1,4 +1,6 @@
 name: ci-shellcheck
+permissions:
+  contents: read
 
 on:
   push:

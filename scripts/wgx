@@ -113,6 +113,41 @@ cmd_plan(){
   done
 }
 
+# Git commit/PR messages
+COMMIT_MSG="chore(wgx): sync templates from metarepo"
+PR_TITLE="chore(wgx): sync templates from metarepo"
+PR_BODY="Automatischer WGX-Sync aus dem metarepo."
+
+# Clone a repository using the best available method
+clone_repo(){
+  local repo_name="$1" workdir="$2"
+  local ow gh_path
+  ow="$(owner)"
+  gh_path="$(command -v gh || true)"
+
+  if [[ -n "$gh_path" && -n "${GH_TOKEN:-}" ]]; then
+    log "Klonen via gh auf ${ow}/${repo_name}"
+    "$gh_path" repo clone "${ow}/${repo_name}" "$workdir" -- --depth 1
+    return
+  fi
+
+  local url_https="https://github.com/${ow}/${repo_name}.git"
+  if [[ -n "${GH_TOKEN:-}" ]]; then
+    log "Klonen via HTTPS (mit GH_TOKEN helper) auf ${ow}/${repo_name}"
+    git -c "credential.helper=!f(){ echo username=x; echo password=\$(echo \$GH_TOKEN); };f" clone --depth 1 "$url_https" "$workdir"
+    return
+  fi
+
+  local url_ssh="git@github.com:${ow}/${repo_name}.git"
+  if ssh -o BatchMode=yes -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
+    log "Klonen via SSH auf ${ow}/${repo_name}"
+    git clone --depth 1 "$url_ssh" "$workdir"
+  else
+    log "Klonen via HTTPS auf ${ow}/${repo_name}"
+    git clone --depth 1 "$url_https" "$workdir"
+  fi
+}
+
 copy_templates_into_repo(){
   local r="$1"
   local tmp workdir; tmp="$(mktemp -d)"; _tmp_dirs+=("$tmp"); workdir="$(mktemp -d)"; _tmp_dirs+=("$workdir")
@@ -138,31 +173,10 @@ for p in root.rglob('*'):
         p.write_text(t.replace('{{REPO_NAME}}', repo), encoding='utf-8')
 PY
 
-  local ow url_ssh url_https url ssh_ok gh_path
-  ow="$(owner)"
-  url_ssh="git@github.com:${ow}/${r}.git"
-  url_https="https://github.com/${ow}/${r}.git"
-  url="$url_ssh"; ssh_ok=0; gh_path=""
-
-  command -v gh >/dev/null 2>&1 && gh_path="$(command -v gh)"
-  if command -v ssh >/dev/null 2>&1; then
-    if ssh -o BatchMode=yes -T git@github.com 2>&1 | grep -q "successfully authenticated"; then ssh_ok=1; fi
+  if ! clone_repo "$r" "$workdir"; then
+    log "Klonen von $r fehlgeschlagen, übersprungen."
+    return 1
   fi
-  (( ! ssh_ok )) && url="$url_https"
-
-  if [[ -n "${GH_TOKEN:-}" && -n "$gh_path" ]]; then
-    log "Klonen via gh auf ${ow}/${r}"
-    "$gh_path" repo clone "${ow}/${r}" "$workdir" -- --depth 1
-  else
-    if [[ -n "${GH_TOKEN:-}" ]]; then
-      log "Klonen via HTTPS (mit GH_TOKEN helper) auf ${ow}/${r}"
-      git -c credential.helper='!f(){ echo username=x; echo password=$GH_TOKEN; };f' clone --depth 1 "$url_https" "$workdir"
-    else
-      log "Klonen via $([[ "$url" == https* ]] && echo HTTPS || echo SSH) auf ${ow}/${r}"
-      git clone --depth 1 "$url" "$workdir"
-    fi
-  fi
-
   rsync -a "$tmp/." "$workdir/"
 
   pushd "$workdir" >/dev/null
@@ -174,11 +188,12 @@ PY
         echo "DRY-RUN: Änderungen erkannt in $r (kein Commit/Push)."
         git status --short
       else
-        git -c user.email="codex-bot@local" -c user.name="Codex Bot" commit -m "chore(wgx): sync templates from metarepo"
+        git -c user.email="codex-bot@local" -c user.name="Codex Bot" commit -m "$COMMIT_MSG"
         git push -u origin "$branch"
+        local gh_path; gh_path="$(command -v gh || true)"
         if [[ -n "$gh_path" ]]; then
           local base_branch; base_branch="$(default_branch_of "$r")"
-          local gh_args=(pr create --fill --title "chore(wgx): sync templates from metarepo" --body "Automatischer WGX-Sync aus dem metarepo." --base "${base_branch:-main}")
+          local gh_args=(pr create --fill --title "$PR_TITLE" --body "$PR_BODY" --base "${base_branch:-main}")
           [[ "${WGX_PR_DRAFT:-0}" == "1" ]] && gh_args+=(--draft)
           "$gh_path" "${gh_args[@]}" || true
         else
@@ -192,22 +207,44 @@ PY
 }
 
 cmd_up(){
-  (( DRYRUN == 1 )) && echo "⚑ Dry-run aktiv – keine Commits oder Pushes."
-  ordered_repos | while read -r r; do
-    [[ -z "$r" ]] && continue
-    echo "▸ Sync $r"
-    copy_templates_into_repo "$r"
+  cmd_plan
+  if (( DRYRUN == 1 )); then
+    echo "⚑ Dry-run aktiv – keine Commits oder Pushes."
+  else
+    read -p "Fortfahren? (y/N) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+      echo "Abgebrochen."
+      exit 0
+    fi
+  fi
+
+  local repos_to_sync; repos_to_sync=($(ordered_repos))
+  local total=${#repos_to_sync[@]} i=0 success_count=0 fail_count=0
+  for r in "${repos_to_sync[@]}"; do
+    (( i++ ))
+    echo "▸ [$i/$total] Sync $r"
+    if copy_templates_into_repo "$r"; then
+      (( success_count++ ))
+    else
+      (( fail_count++ ))
+    fi
   done
+  echo "✔︎ Sync abgeschlossen. Erfolg: $success_count, Fehler: $fail_count."
 }
 
 cmd_run(){
   local target="${1:-ci}"
   need gh
-  ordered_repos | while read -r r; do
-    [[ -z "$r" ]] && continue
-    echo "▸ $r → $target"
+  local repos_to_run; repos_to_run=($(ordered_repos))
+  local total=${#repos_to_run[@]} i=0
+  for r in "${repos_to_run[@]}"; do
+    (( i++ ))
+    echo "▸ [$i/$total] $r → $target"
     if gh workflow list --repo "$(owner)/$r" --limit 200 | awk '{print $1}' | grep -qx "$target"; then
-      gh workflow run "$target" --repo "$(owner)/$r" || echo "skip"
+      if ! gh workflow run "$target" --repo "$(owner)/$r"; then
+        echo "Workflow-Start in $r übersprungen oder fehlgeschlagen."
+      fi
     else
       echo "⚠︎ Workflow '$target' existiert nicht in $r – übersprungen."
     fi

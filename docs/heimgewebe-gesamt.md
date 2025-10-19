@@ -2,6 +2,10 @@
 
 > Kurzfassung siehe [`docs/overview.md`](./overview.md); dort sind Rollen, Datenflüsse und Auth-Anker zusammengefasst.
 
+> **Fleet-Abgrenzung:** Core-Repos der Fleet sind `wgx, hausKI, hausKI-audio, metarepo, heimlern, aussensensor, leitstand, semantAH`.  
+> `vault-gewebe` (inkl. privat) ist persönlicher Wissensspeicher und **nicht** Teil der Fleet.  
+> `weltgewebe` ist **unabhängig** vom Heimgewebe gedacht und wird parallel entwickelt.
+
 ## Auf einen Blick
 
 - **Ziel:** Lokal-first, erklärbar, selbstverbessernd.

@@ -3,6 +3,7 @@ Diese Dokumente beschreiben **Fleet/Themen** des metarepo (Inventar, Verteilung,
 Für **WGX (Engine)** siehe: https://github.com/heimgewebe/wgx
 
 ## Inhalte
+- [Kernkonzepte (Architektur, Sync, Drift)](./konzept-kern.md)
 - [Fleet-Kurzüberblick (Rollen, Flüsse, Auth)](./overview.md)
 - [Fleet-Operations](./fleet.md)
 - [repos.yml – Inventar & Filter](./repos.yml.md)

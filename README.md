@@ -2,7 +2,7 @@
 
 # metarepo
 
-**Docs:** siehe [docs/README.md](docs/README.md) · [Fleet-Overview](docs/overview.md) · [Fleet-Gesamtbild](docs/heimgewebe-gesamt.md) · Canvas: [docs/canvas/](docs/canvas) · WGX-Master-Doku: https://github.com/heimgewebe/wgx
+**Docs:** siehe [Kernkonzepte](docs/konzept-kern.md) · [WGX-Kommandos](docs/wgx-konzept.md) · [Fleet-Gesamtbild](docs/heimgewebe-gesamt.md) · Canvas: [docs/canvas/](docs/canvas)
 
 Zentrale Steuerzentrale (Meta-Layer) für alle Repos von **heimgewebe**.
 Enthält:

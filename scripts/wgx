@@ -133,8 +133,27 @@ clone_repo(){
 
   local url_https="https://github.com/${ow}/${repo_name}.git"
   if [[ -n "${GH_TOKEN:-}" ]]; then
-    log "Klonen via HTTPS (mit GH_TOKEN helper) auf ${ow}/${repo_name}"
-    git -c "credential.helper=!f(){ echo username=x; echo password=\$(echo \$GH_TOKEN); };f" clone --depth 1 "$url_https" "$workdir"
+    log "Klonen via HTTPS (mit GH_TOKEN über temporären Credential-Helper) auf ${ow}/${repo_name}"
+    local _wgx_cred_helper
+    _wgx_cred_helper="$(mktemp "${TMPDIR:-/tmp}/wgx-gh-cred.XXXXXX")"
+    _tmp_dirs+=("$_wgx_cred_helper")
+    cat >"$_wgx_cred_helper" <<'EOS'
+#!/usr/bin/env sh
+set -eu
+# Git credential helper: liest Anfrage (stdin) bis zur Leerzeile und antwortet
+# mit Benutzer/Passwort aus der Umgebung. GH_TOKEN verbleibt in der ENV.
+while IFS= read -r line; do
+  [ -z "$line" ] && break
+done
+printf 'username=%s\n' "x"
+[ -n "${GH_TOKEN:-}" ] || exit 1
+printf 'password=%s\n' "$GH_TOKEN"
+EOS
+    chmod 700 "$_wgx_cred_helper"
+    GIT_TERMINAL_PROMPT=0 GH_TOKEN="${GH_TOKEN}" \
+      git -c "credential.helper=!\"$_wgx_cred_helper\"" \
+          clone --depth 1 "$url_https" "$workdir"
+    rm -f "$_wgx_cred_helper"
     return
   fi
 

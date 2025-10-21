@@ -1,4 +1,5 @@
 ![WGX](https://img.shields.io/badge/wgx-enabled-blue)
+[![Docs link check](https://github.com/heimgewebe/metarepo/actions/workflows/linkcheck.yml/badge.svg)](https://github.com/heimgewebe/metarepo/actions/workflows/linkcheck.yml)
 
 # metarepo
 
@@ -34,6 +35,17 @@ Siehe `repos.yml`. Standard: alle öffentlichen Repos unter `heimgewebe`, **auß
 Aktuelle Übersicht:
 - **Index:** [docs/org-index.md](docs/org-index.md)
 - **Graph:** rendere `docs/org-graph.mmd` z. B. in Obsidian/VS Code (Mermaid).
+
+## Dokumentation & Links
+- [Docs-Index](docs/README.md) – thematische Übersicht aller Metarepo-Dokumente
+- [Systemübersicht](docs/system-overview.md) – Repos, Verantwortlichkeiten & Einstiegspunkte
+- [Architektur](docs/architecture.md) – Komponenten, Datenflüsse & Diagramme
+- [Use-Cases](docs/use-cases.md) – Schritt-für-Schritt-Beispiele für typische Aufgaben
+- [Automatisierung & CI](docs/automation.md) – Just-Targets, WGX-Kommandos & Workflows
+- [Umgebung & Secrets](docs/environment.md) – lokale Konfiguration, Tokens & .env-Hinweise
+- [Troubleshooting & FAQ](docs/troubleshooting.md) – häufige Probleme & Fixes
+- [Events & Contracts](docs/contracts/index.md) – Schemas, Referenzen & Versionierung
+- [End-to-End-Läufe](docs/e2e.md) – automatisierte Kette `aussensensor → leitstand → heimlern`
 
 ## End-to-End
 Siehe [docs/e2e.md](docs/e2e.md) für den automatisierten Lauf `aussensensor → leitstand → heimlern`.

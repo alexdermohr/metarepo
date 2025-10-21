@@ -7,7 +7,7 @@ REPORT_DIR="${ROOT}/.hauski-reports"
 mkdir -p "${REPORT_DIR}"
 mkdir -p "${LOG_DIR}"
 
-STAMP="$(date +"%Y-%m-%dT%H-%M-%S")"
+STAMP="$(date -u +"%Y-%m-%dT%H-%M-%SZ")"
 OUT="${REPORT_DIR}/${STAMP}-e2e-aussen-leitstand-heimlern.md"
 
 cat >"${OUT}" <<'MD'
@@ -18,19 +18,23 @@ Dieser Report bündelt die Logs des End-to-End-Laufs (Trocken- und Echtlauf).
 ## Artefakte
 MD
 
-echo "" >>"${OUT}"
-echo "Log-Verzeichnis: \`${LOG_DIR}\`" >>"${OUT}"
-echo "" >>"${OUT}"
+{
+  echo ""
+  echo "Log-Verzeichnis: \`${LOG_DIR}\`"
+  echo ""
+} >>"${OUT}"
 
 emit() {
   local title="$1"; local file="$2"
   if [[ -s "${file}" ]]; then
-    echo "### ${title}" >>"${OUT}"
-    echo "" >>"${OUT}"
-    echo '```txt' >>"${OUT}"
-    sed -e 's/\x1b\[[0-9;]*m//g' "${file}" >>"${OUT}" || true
-    echo '```' >>"${OUT}"
-    echo "" >>"${OUT}"
+    {
+      echo "### ${title}"
+      echo ""
+      echo '```txt'
+      sed -e 's/\x1b\[[0-9;]*m//g' "${file}" | tail -n 5000 || true
+      echo '```'
+      echo ""
+    } >>"${OUT}"
   fi
 }
 
@@ -41,4 +45,4 @@ emit "04 push_leitstand (real)"  "${LOG_DIR}/04_push_leitstand_real.out"
 emit "05 push_heimlern (real)"   "${LOG_DIR}/05_push_heimlern_real.out"
 emit "Gesamtlog"                 "${LOG_DIR}/e2e.log"
 
-echo "✓ Report geschrieben: ${OUT}"
+echo "✓ Report: $(realpath "${OUT}")"

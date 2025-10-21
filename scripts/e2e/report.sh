@@ -65,10 +65,19 @@ elif command -v readlink >/dev/null 2>&1; then
 else
   abs_path="${OUT}"
 fi
-echo "✓ Report: ${abs_path}"
 
-# optional: große Reports komprimieren (Schwelle 1 MB)
-if command -v gzip >/dev/null 2>&1 && [[ -f "${OUT}" && $(stat -c%s "${OUT}" 2>/dev/null || stat -f%z "${OUT}") -gt 1048576 ]]; then
-  gzip -f "${OUT}"
-  echo "ⓘ Report komprimiert: ${abs_path}.gz"
+#
+# Announce the final artifact path (optionally compressed)
+# ── If gzip is available and the file is >= 1 MiB, compress and announce *.gz.
+#    Otherwise, announce the plain file path.
+#
+final_path="${abs_path}"
+if [[ -f "${OUT}" ]]; then
+  # Dateigröße plattformverträglich ermitteln
+  _size="$(stat -c%s "${OUT}" 2>/dev/null || stat -f%z "${OUT}" 2>/dev/null || echo 0)"
+  if command -v gzip >/dev/null 2>&1 && [[ "${_size}" -ge 1048576 ]]; then
+    gzip -f "${OUT}"      # löscht "${OUT}", erzeugt "${OUT}.gz"
+    final_path="${abs_path}.gz"
+  fi
 fi
+echo "✔ Report: ${final_path}"

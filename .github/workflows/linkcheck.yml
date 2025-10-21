@@ -1,0 +1,41 @@
+name: Docs link check
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - README.md
+      - docs/**
+      - .lychee.toml
+      - .github/workflows/linkcheck.yml
+  pull_request:
+    paths:
+      - README.md
+      - docs/**
+      - .lychee.toml
+      - .github/workflows/linkcheck.yml
+permissions:
+  contents: read
+concurrency:
+  group: linkcheck-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  lychee:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache lychee URL state
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/lychee
+          key: ${{ runner.os }}-lychee-v0.14.3-${{ hashFiles('.lychee.toml', 'README.md', 'docs/**/*.md') }}
+          restore-keys: |
+            ${{ runner.os }}-lychee-v0.14.3-
+            ${{ runner.os }}-lychee-
+      - name: Run lychee on docs & README
+        uses: lycheeverse/lychee-action@v1.10.0
+        with:
+          args: --config .lychee.toml --no-progress README.md docs/**/*.md
+          fail: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LYCHEE_CACHE_DIR: ~/.cache/lychee

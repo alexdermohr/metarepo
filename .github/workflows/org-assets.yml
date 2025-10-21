@@ -15,6 +15,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v2
         with:
-          version: "0.5.x"
+          version: "0.1.22"
       - run: uv run scripts/generate_org_assets.py --repos-file repos.yml --index docs/org-index.md --graph docs/org-graph.mmd
       - run: git diff --exit-code || (echo "::warning::Org assets changed – commit in this PR" && exit 1)

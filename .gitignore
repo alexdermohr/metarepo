@@ -3,6 +3,11 @@
 .DS_Store
 .env
 
+# E2E & Reports
+.e2e-logs/
+.hauski-reports/
+scripts/e2e/.env
+
 # local tooling bins (unpinned / developer-managed)
 # halte den Ordner selbst im Repo, aber lasse lokale Pins zu
 tools/bin/*

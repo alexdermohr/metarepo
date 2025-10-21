@@ -41,6 +41,10 @@ validate: yq_ensure
 ci:
     just validate
 
+linkcheck:
+    docker run --rm -v $PWD:/work ghcr.io/lycheeverse/lychee:v0.14.3 \
+      --config /work/.lychee.toml
+
 e2e-dry:
     set -a; [ -f scripts/e2e/.env ] && . scripts/e2e/.env || true; set +a
     DRY_RUN=1 bash scripts/e2e/run_aussen_to_heimlern.sh

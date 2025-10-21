@@ -30,6 +30,11 @@ Siehe `repos.yml`. Standard: alle öffentlichen Repos unter `heimgewebe`, **auß
 4. `just wgx:validate` – prüft Template-Konsistenz via WGX
 5. `just validate` – lokale Validierung (z. B. YAML via mikefarah/yq v4)
 
+## Org-Übersicht
+Aktuelle Übersicht:
+- **Index:** [docs/org-index.md](docs/org-index.md)
+- **Graph:** rendere `docs/org-graph.mmd` z. B. in Obsidian/VS Code (Mermaid).
+
 ### WGX-Extras
 - `./scripts/wgx plan` – Offline-Vorschau, welche Dateien aus `templates/` in jedes Repo gespiegelt würden.
 - `PLAN_LIMIT=0 ./scripts/wgx plan` – zeigt alle Dateien pro Repo (Standard 10).

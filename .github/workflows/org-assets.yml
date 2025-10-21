@@ -1,0 +1,20 @@
+name: Org assets
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v2
+        with:
+          version: "0.5.x"
+      - run: uv run scripts/generate_org_assets.py --repos-file repos.yml --index docs/org-index.md --graph docs/org-graph.mmd
+      - run: git diff --exit-code || (echo "::warning::Org assets changed – commit in this PR" && exit 1)

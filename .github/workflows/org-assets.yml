@@ -13,8 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v2
+      - uses: actions/setup-python@v5
         with:
-          version: "0.1.22"
-      - run: uv run scripts/generate_org_assets.py --repos-file repos.yml --index docs/org-index.md --graph docs/org-graph.mmd
+          python-version: '3.11'
+      - run: python scripts/generate_org_assets.py --repos-file repos.yml --index docs/org-index.md --graph docs/org-graph.mmd
       - run: git diff --exit-code || (echo "::warning::Org assets changed – commit in this PR" && exit 1)

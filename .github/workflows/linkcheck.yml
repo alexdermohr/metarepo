@@ -34,7 +34,7 @@ jobs:
       - name: Run lychee on docs & README
         uses: lycheeverse/lychee-action@v1.10.0
         with:
-          args: --config .lychee.toml --no-progress 'README.md' 'docs/**/*.md'
+          args: --config .lychee.toml --no-progress README.md docs/**/*.md
           fail: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

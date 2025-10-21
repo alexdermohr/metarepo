@@ -35,6 +35,9 @@ Aktuelle Übersicht:
 - **Index:** [docs/org-index.md](docs/org-index.md)
 - **Graph:** rendere `docs/org-graph.mmd` z. B. in Obsidian/VS Code (Mermaid).
 
+## End-to-End
+Siehe [docs/e2e.md](docs/e2e.md) für den automatisierten Lauf `aussensensor → leitstand → heimlern`.
+
 ### WGX-Extras
 - `./scripts/wgx plan` – Offline-Vorschau, welche Dateien aus `templates/` in jedes Repo gespiegelt würden.
 - `PLAN_LIMIT=0 ./scripts/wgx plan` – zeigt alle Dateien pro Repo (Standard 10).

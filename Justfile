@@ -4,6 +4,20 @@ set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 alias wgx := _wgx
 alias yq  := _yq
 
+# --- Org Assets ---------------------------------------------------------------
+deps:
+    uv sync --frozen
+
+org-index:
+    uv run scripts/generate_org_assets.py --repos-file repos.yml --index docs/org-index.md
+
+org-graph:
+    uv run scripts/generate_org_assets.py --repos-file repos.yml --graph docs/org-graph.mmd
+
+linkcheck:
+    docker run --rm -v $PWD:/work ghcr.io/lycheeverse/lychee:v0.14.3 \
+      --config /work/.lychee.toml
+
 # --- Tasks --------------------------------------------------------------------
 # Tooling guards
 yq_ensure:

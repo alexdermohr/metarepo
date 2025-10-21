@@ -2,6 +2,9 @@
 *.swp
 .DS_Store
 .env
+.venv/
+/.uv/
+__pycache__/
 
 # E2E & Reports
 .e2e-logs/

@@ -1,15 +1,18 @@
-PYTHON ?= python3
+UV ?= uv
 REPOS_YML := repos.yml
-ORG_GENERATOR := $(PYTHON) scripts/generate_org_assets.py --repos-file $(REPOS_YML)
+ORG_GENERATOR := $(UV) run scripts/generate_org_assets.py --repos-file $(REPOS_YML)
 
-.PHONY: all index graph linkcheck
+.PHONY: all deps index graph linkcheck
 
 all: index graph
 
-index:
+deps:
+	$(UV) sync --frozen
+
+index: deps
 	$(ORG_GENERATOR) --index docs/org-index.md
 
-graph:
+graph: deps
 	$(ORG_GENERATOR) --graph docs/org-graph.mmd
 
 linkcheck:

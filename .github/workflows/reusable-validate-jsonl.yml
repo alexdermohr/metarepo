@@ -67,6 +67,7 @@ jobs:
           if [[ -z "${FAIL_ON_EMPTY_RAW}" ]]; then
             FAIL_ON_EMPTY_RAW="false"
           fi
+
           SCHEMA="/tmp/schema.json"
           if [[ -n "${SCHEMA_PATH_IN}" ]]; then
             if [[ ! -f "${SCHEMA_PATH_IN}" ]]; then
@@ -82,17 +83,23 @@ jobs:
             fi
             SCHEMA_SOURCE="${SCHEMA_URL}"
           fi
+
           VALIDATE_FORMATS="${VALIDATE_FORMATS_RAW,,}"
           FAIL_ON_EMPTY="${FAIL_ON_EMPTY_RAW,,}"
           FORMAT_FLAG=$([[ "$VALIDATE_FORMATS" == "false" ]] && echo "--validate-formats=false" || echo "--validate-formats=true")
+
           # ---- Dateien ermitteln (Single oder Liste) -------------------------
           declare -a FILES=()
           declare -A SEEN=()
+
           if [[ -n "${LIST_RAW:-}" ]]; then
-            # Split an Komma und Zeilenumbrüchen; trimmen; Globs expandieren.
-            mapfile -t _raw_items < <(printf '%s\n' "$LIST_RAW" | tr ',' '\n' | sed 's/^[[:space:]]\+//;s/[[:space:]]\+$//' | awk 'NF')
+            # Split an Komma und Zeilenumbrüchen; trimmen; leere Zeilen filtern.
+            mapfile -t _raw_items < <(printf '%s\n' "$LIST_RAW" \
+              | tr ',' '\n' \
+              | sed 's/^[[:space:]]\+//;s/[[:space:]]\+$//' \
+              | awk 'NF')
             for item in "${_raw_items[@]}"; do
-              # compgen -G expandiert Globs. Falls kein Match, exit-code != 0 -> daher "|| true".
+              # compgen -G expandiert Globs. Falls kein Match: exit-code != 0 -> daher "|| true".
               mapfile -t matches < <(compgen -G "$item" || true)
               if (( ${#matches[@]} == 0 )); then
                 echo "::notice title=validate-jsonl::Kein Treffer für Pattern: ${item}"
@@ -126,6 +133,7 @@ jobs:
           overall_lines=0
           fail_file="$(mktemp /tmp/jsonl-violations.XXXX.txt)"
           had_fail=0
+
           for FILE in "${FILES[@]}"; do
             if [[ ! -f "$FILE" ]]; then
               echo "::notice title=validate-jsonl::Datei nicht gefunden: $FILE – übersprungen."
@@ -138,7 +146,10 @@ jobs:
               [[ -z "${line// }" ]] && continue
               # CRLF defensiv entfernen
               printf '%s\n' "$line" | tr -d '\r' > /tmp/event.json
-              if ! ajv validate --spec=draft2020 $([[ "$STRICT" == "true" ]] && echo "--strict=true" || echo "--strict=false") $FORMAT_FLAG -s "$SCHEMA" -d /tmp/event.json; then
+              if ! ajv validate --spec=draft2020 \
+                   $([[ "$STRICT" == "true" ]] && echo "--strict=true" || echo "--strict=false") \
+                   $FORMAT_FLAG \
+                   -s "$SCHEMA" -d /tmp/event.json; then
                 echo "::error file=$FILE,line=$line_no::Schema-Verstoß in Zeile $line_no"
                 cat /tmp/event.json >> "$fail_file"; echo "" >> "$fail_file"
                 had_fail=1
@@ -147,10 +158,12 @@ jobs:
             overall_lines=$((overall_lines + line_no))
             echo "::notice file=$FILE::$line_no Zeilen geprüft"
           done
+
           if (( had_fail )); then
             echo "::error title=validate-jsonl::Validierung fehlgeschlagen in mindestens einer Datei"
             exit 1
           fi
+
           rm -f "$fail_file"
           echo "OK: $overall_lines Zeilen geprüft in ${#FILES[@]} Datei(en)."
 

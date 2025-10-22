@@ -3,7 +3,7 @@
 
 # metarepo
 
-**Docs:** siehe [Kernkonzepte](docs/konzept-kern.md) · [WGX-Kommandos](docs/wgx-konzept.md) · [Fleet-Gesamtbild](docs/heimgewebe-gesamt.md) · Canvas: [docs/canvas/](docs/canvas)
+**Docs:** siehe [Kernkonzepte](docs/konzept-kern.md) · [WGX-Kommandos](docs/wgx-konzept.md) · [Fleet-Gesamtbild](docs/heimgewebe-gesamt.md) · Systemdiagramm: [docs/system-overview.mmd](docs/system-overview.mmd) · Canvas: [docs/canvas/](docs/canvas)
 
 Zentrale Steuerzentrale (Meta-Layer) für alle Repos von **heimgewebe**.
 Enthält:
@@ -30,6 +30,18 @@ Siehe `repos.yml`. Standard: alle öffentlichen Repos unter `heimgewebe`, **auß
 3. `just smoke` – Fleet-Healthcheck (read-only Checks)
 4. `just wgx:validate` – prüft Template-Konsistenz via WGX
 5. `just validate` – lokale Validierung (z. B. YAML via mikefarah/yq v4)
+
+## Contracts (Kurz)
+Zentrale Schemas und Reusables liegen im metarepo und werden über Tags (z. B. `contracts-v1`) konsumiert. Details: [docs/contracts/index.md](docs/contracts/index.md)
+
+| Contract | Producer | Consumer |
+| --- | --- | --- |
+| `aussen.event` | aussensensor, (optional) weltgewebe | leitstand |
+| `metrics.snapshot` | wgx | hausKI, leitstand |
+| `insights` | semantAH | hausKI, leitstand |
+| `audio.events` | hausKI-audio | hausKI, leitstand |
+| `policy.decision` | heimlern | hausKI |
+| `event.line` | hausKI | leitstand |
 
 ## Org-Übersicht
 Aktuelle Übersicht:

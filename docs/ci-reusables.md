@@ -49,12 +49,34 @@ jobs:
 - Zusätzliche Inputs:
   - `schema_path`: Liest das Schema direkt aus dem Repo (überschreibt `schema_url`).
   - `validate_formats`: Steuert Formatprüfungen durch `ajv` (Default `true`).
+  - `jsonl_paths_list`: Komma- **oder** zeilengetrennte Liste von JSONL-Dateien (Globs erlaubt). Wenn gesetzt, wird **jede** Datei validiert (rückwärtskompatibel zu `jsonl_path`).
 - Artefakte mit fehlgeschlagenen Zeilen bleiben sieben Tage verfügbar.
 - Verwende immer einen **festen Ref** (`heimgewebe/metarepo@<tag|sha>`). Für reproduzierbare Builds **Tag oder Commit-SHA** pinnen (Actions innerhalb des Workflows sind per SHA fixiert).
   - Beispiel Tag: `@metarepo-ci-v20251005`
   - Beispiel Commit: `@d34db33f5e7c0de...`
 - `reusable-ci.yml` akzeptiert `run_lint`/`run_tests` (Booleans). Weitere Inputs bei Bedarf ergänzen.
 - JSONL-Workflow: `strict: true` aktiviert den strikten AJV-Modus, `strict: false` erlaubt entspanntere Eingaben. Standard ist `false`.
+
+### Beispiele
+- **Einzeldatei**:
+
+  ```yaml
+  uses: heimgewebe/metarepo/.github/workflows/reusable-validate-jsonl.yml@contracts-v1
+  with:
+    jsonl_path: export/feed.jsonl
+    schema_url: https://raw.githubusercontent.com/heimgewebe/metarepo/contracts-v1/contracts/aussen.event.schema.json
+  ```
+
+- **Mehrere Dateien (Liste + Globs)**:
+
+  ```yaml
+  uses: heimgewebe/metarepo/.github/workflows/reusable-validate-jsonl.yml@contracts-v1
+  with:
+    jsonl_paths_list: |
+      export/feeds/*.jsonl
+      fixtures/aussen/demo.jsonl
+    schema_url: https://raw.githubusercontent.com/heimgewebe/metarepo/contracts-v1/contracts/aussen.event.schema.json
+  ```
 
 ## Versionierung & Pinning
 - `main` spiegelt den aktuellen Fleet-Kanon.

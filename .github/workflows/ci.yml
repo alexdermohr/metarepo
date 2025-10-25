@@ -36,7 +36,10 @@ concurrency:
 
 defaults:
   run:
-    shell: bash --noprofile --norc -euo pipefail {0}
+    # Ensure Bash scripts behave consistently across the matrix.
+    # GitHub provides Bash on all hosted runners (macOS, Ubuntu, GitHub-hosted Windows via Git-Bash),
+    # so explicitly setting the shell avoids PowerShell drift when we expand the matrix later.
+    shell: bash
 
 jobs:
   ci:
@@ -242,45 +245,58 @@ PY
           echo "PIP_DISABLE_PIP_VERSION_CHECK=1" >> "$GITHUB_ENV"
           echo "PIP_NO_PYTHON_VERSION_WARNING=1" >> "$GITHUB_ENV"
 
-      - name: Cache uv artifacts
+      - name: Cache uv package cache
         if: ${{ hashFiles('**/pyproject.toml') != '' }}
         uses: actions/cache@13c3b5c0b52e77e8fa7b4e3d6a238602b25e9a3a
         with:
-          path: ~/.cache/uv
-          key: ${{ runner.os }}-uv-${{ env.UV_VERSION }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('**/pyproject.toml', '**/uv.lock', '**/poetry.lock') }}
+          # OS-spezifische uv-Cachepfade
+          path: |
+            ~/.cache/uv
+            ~/Library/Caches/uv
+            C:\Users\runneradmin\AppData\Local\uv\cache
+          key: ${{ runner.os }}-${{ runner.arch }}-uv-${{ env.UV_VERSION }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('**/pyproject.toml', '**/uv.lock', '**/poetry.lock') }}
           restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-uv-${{ env.UV_VERSION }}-${{ env.PYTHON_VERSION }}-
             ${{ runner.os }}-uv-${{ env.UV_VERSION }}-${{ env.PYTHON_VERSION }}-
             ${{ runner.os }}-uv-${{ env.UV_VERSION }}-
             ${{ runner.os }}-uv-
+            ${{ runner.os }}-${{ runner.arch }}-uv-
 
-      - name: Cache uv virtual environment
+      - name: Cache uv virtual environment (requirements)
         if: ${{ hashFiles('**/requirements*.txt') != '' }}
         uses: actions/cache@13c3b5c0b52e77e8fa7b4e3d6a238602b25e9a3a
         with:
           path: .venv
-          key: ${{ runner.os }}-uv-venv-${{ env.PYTHON_VERSION }}-${{ hashFiles('**/requirements*.txt') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-uv-venv-${{ env.UV_VERSION }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('**/requirements*.txt') }}
           restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-uv-venv-${{ env.UV_VERSION }}-${{ env.PYTHON_VERSION }}-
+            ${{ runner.os }}-uv-venv-${{ env.UV_VERSION }}-${{ env.PYTHON_VERSION }}-
+            ${{ runner.os }}-uv-venv-${{ env.PYTHON_VERSION }}-
+            ${{ runner.os }}-uv-venv-
+
+      - name: Cache uv virtual environment (pyproject)
+        if: ${{ hashFiles('**/pyproject.toml') != '' && hashFiles('**/requirements*.txt') == '' }}
+        uses: actions/cache@13c3b5c0b52e77e8fa7b4e3d6a238602b25e9a3a
+        with:
+          path: .venv
+          key: ${{ runner.os }}-${{ runner.arch }}-uv-venv-${{ env.UV_VERSION }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('**/pyproject.toml', '**/uv.lock', '**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-uv-venv-${{ env.UV_VERSION }}-${{ env.PYTHON_VERSION }}-
+            ${{ runner.os }}-uv-venv-${{ env.UV_VERSION }}-${{ env.PYTHON_VERSION }}-
             ${{ runner.os }}-uv-venv-${{ env.PYTHON_VERSION }}-
             ${{ runner.os }}-uv-venv-
 
       - name: Install uv
         if: ${{ hashFiles('**/pyproject.toml') != '' || hashFiles('**/requirements*.txt') != '' }}
-        env:
-          UV_VERSION: ${{ env.UV_VERSION }}
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          export PATH="$HOME/.local/bin:$PATH"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
-          INSTALLED=$(uv --version | tr -dc '0-9.')
-          if [[ "${INSTALLED}" != "${UV_VERSION}" ]]; then
-            echo "Expected uv ${UV_VERSION}, got ${INSTALLED}" >&2
-            exit 1
-          fi
+        # v7
+        uses: astral-sh/setup-uv@0c5ec6682189e50e54f9b89e0ee1d3f3f94a639a
+        with:
+          version: ${{ env.UV_VERSION }}
 
       - name: Create uv virtual environment
         if: ${{ hashFiles('**/requirements*.txt') != '' }}
         run: |
+          set -euo pipefail
           if [[ -d .venv ]]; then
             echo "Using cached uv virtual environment"
           else
@@ -290,11 +306,12 @@ PY
           echo "VIRTUAL_ENV=$PWD/.venv" >> "$GITHUB_ENV"
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
 
-      - name: Install requirements with uv
+      - name: Aggregate requirements and install with uv
         if: ${{ hashFiles('**/requirements*.txt') != '' }}
         env:
           UV_PROJECT_ENVIRONMENT: ${{ env.UV_PROJECT_ENVIRONMENT }}
         run: |
+          set -euo pipefail
           TMP_REQUIREMENTS="$(mktemp)"
           trap 'rm -f "${TMP_REQUIREMENTS}"' EXIT
           {
@@ -302,11 +319,33 @@ PY
             git ls-files -z '**/requirements*.txt' \
               | while IFS= read -r -d '' req; do
                   echo
-                  echo "# source: ${req}"
-                  cat "${req}"
+                  echo "# --- file: ${req} ---"
+                  # Kommentare/Leerzeilen entfernen, damit keine leeren Einträge entstehen
+                  sed -e 's/^[[:space:]]*#.*$//' -e '/^[[:space:]]*$/d' "$req"
                 done
           } > "${TMP_REQUIREMENTS}"
-          uv pip sync "${TMP_REQUIREMENTS}"
+          echo "Resolved aggregate requirements at: ${TMP_REQUIREMENTS}"
+          # Debug-Preview (erste 50 Zeilen)
+          head -n 50 "${TMP_REQUIREMENTS}" || true
+          # Fail-fast, wenn leer
+          if [[ ! -s "${TMP_REQUIREMENTS}" ]]; then
+            echo "No requirements to install (aggregate is empty)" >&2
+            exit 1
+          fi
+          echo "Inspecting package index configuration via 'uv pip index show pip'"
+          uv pip index show pip | head -n 10 || true
+          # Use `uv pip install` instead of `uv pip sync` because the aggregated
+          # requirements may include loose constraints that intentionally layer
+          # on top of the project's locked dependencies.
+          uv pip install -r "${TMP_REQUIREMENTS}"
+
+      - name: Sync pyproject environment with uv
+        if: ${{ hashFiles('**/pyproject.toml') != '' }}
+        run: |
+          set -euo pipefail
+          uv sync --frozen
+          uv pip list | sed -n '1,80p'
+          uv python --version
 
       - name: Setup Just
         uses: extractions/setup-just@2fa60cc7d6fb3586e4cbace17c1169c8d2bd0f5c

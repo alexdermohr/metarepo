@@ -43,19 +43,7 @@ defaults:
 
 jobs:
   ci:
-    if: ${{
-      (
-        github.event_name != 'push'
-        || !(
-          contains(github.event.head_commit.message, '[skip ci]')
-          || contains(github.event.head_commit.message, '[ci skip]')
-        )
-      )
-      && (
-        github.event_name != 'pull_request'
-        || github.event.pull_request.draft != true
-      )
-    }}
+    if: ${{ (github.event_name != 'push' || (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]'))) && (github.event_name != 'pull_request' || github.event.pull_request.draft != true) }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
@@ -86,19 +74,8 @@ jobs:
             echo "Python interpreter required to parse toolchain.versions.yml" >&2
             exit 1
           fi
-          YQ_VER="$($PYTHON_BIN - <<'PY'
-import pathlib
-import re
-import sys
-
-path = pathlib.Path("toolchain.versions.yml")
-text = path.read_text()
-match = re.search(r"^yq:\s*\"?([^\"#\n]+)\"?", text, re.MULTILINE)
-if not match:
-    sys.exit("yq version missing in toolchain.versions.yml")
-print(match.group(1).strip())
-PY
-)"
+          chmod +x .github/workflows/get-yq-version.py
+          YQ_VER="$(.github/workflows/get-yq-version.py)"
           test -n "${YQ_VER}" || { echo "Failed to resolve yq version" >&2; exit 1; }
           echo "YQ_VERSION=${YQ_VER}" >> "$GITHUB_ENV"
           echo "Resolved yq version ${YQ_VER}"

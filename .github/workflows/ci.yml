@@ -2,7 +2,7 @@ name: CI
 # Linked ADR: docs/adrs/ADR-0001-toolchain-strategy.md
 
 permissions:
-  contents: read
+  contents: read  # Limit default token scope for least privilege.
 
 on:
   push:
@@ -59,12 +59,16 @@ jobs:
       RUSTFLAGS: "-Dwarnings"
       RUSTDOCFLAGS: "-Dwarnings"
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a96968112b
+      - name: Checkout repository
+        # Pin statt Tag, um Tag-Drift zu vermeiden. Commit entspricht v4.
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a96968112b
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Load yq version pin
         run: |
+          set -euo pipefail
           test -f toolchain.versions.yml || { echo "toolchain.versions.yml not found" >&2; exit 1; }
           if command -v python3 >/dev/null; then
             PYTHON_BIN=python3

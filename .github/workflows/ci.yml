@@ -59,8 +59,8 @@ jobs:
       RUSTDOCFLAGS: "-Dwarnings"
     steps:
       - name: Checkout repository
-        # Commit-Pin (entspricht v4), verhindert Tag-Drift
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a96968112b
+        # Track the v4 release line without pinning to a potentially GC'd commit SHA.
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: false

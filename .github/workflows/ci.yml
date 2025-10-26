@@ -1,7 +1,8 @@
 name: CI
 # Linked ADR: docs/adrs/ADR-0001-toolchain-strategy.md
 
-permissions: { contents: read }  # Limit default token scope for least privilege.
+permissions:
+  contents: read  # Limit default token scope for least privilege.
 
 on:
   push:
@@ -59,8 +60,8 @@ jobs:
       RUSTDOCFLAGS: "-Dwarnings"
     steps:
       - name: Checkout repository
-        # Track the v4 release line without pinning to a potentially GC'd commit SHA.
-        uses: actions/checkout@v4
+        # Commit pin (matches v4 release) to prevent tag drift and ensure reproducibility
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a96968112b
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -88,47 +89,62 @@ jobs:
           set -euo pipefail
           mkdir -p "$HOME/.local/bin"
           export YQ_VERSION="${YQ_VERSION:?YQ_VERSION not set}"
+          YQ_VER_TRIM="${YQ_VERSION#v}"
+
           if [[ -x scripts/tools/yq-pin.sh ]]; then
             scripts/tools/yq-pin.sh ensure
           elif ! command -v yq >/dev/null; then
-            OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
-            ARCH_RAW="$(uname -m)"
+            OS="$(uname -s | tr '[:upper:]' '[:lower:]' )"   # linux | darwin
+            ARCH_RAW="$(uname -m)"                          # x86_64 | aarch64 | arm64 | ...
             case "$ARCH_RAW" in
               x86_64) ARCH="amd64" ;;
               arm64|aarch64) ARCH="arm64" ;;
               *) echo "Unsupported architecture: $ARCH_RAW" >&2; exit 1 ;;
             esac
-            YQ_VERSION_TRIMMED="${YQ_VERSION#v}"
-            YQ_URL="https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION_TRIMMED}/yq_${OS}_${ARCH}"
+
+            # YQ_VERSION kann mit oder ohne führendes 'v' kommen – normalize:
+            YQ_URL="https://github.com/mikefarah/yq/releases/download/v${YQ_VER_TRIM}/yq_${OS}_${ARCH}"
             YQ_SHA_URL="${YQ_URL}.sha256"
+
             TMP_YQ="$(mktemp)"
             TMP_SHA="${TMP_YQ}.sha"
-            cleanup() { rm -f "${TMP_YQ}" "${TMP_SHA}"; }
-            trap cleanup EXIT
-            echo "Downloading yq ${YQ_VERSION_TRIMMED} from ${YQ_URL}"
+            trap 'rm -f "${TMP_YQ}" "${TMP_SHA}"' EXIT
+
+            echo "Downloading yq v${YQ_VER_TRIM} from ${YQ_URL}"
             curl -LsSf "${YQ_URL}" -o "${TMP_YQ}"
             curl -LsSf "${YQ_SHA_URL}" -o "${TMP_SHA}"
+
             EXPECTED_SHA="$(cut -d' ' -f1 "${TMP_SHA}")"
             if command -v sha256sum >/dev/null; then
               ACTUAL_SHA="$(sha256sum "${TMP_YQ}" | awk '{print $1}')"
             else
               ACTUAL_SHA="$(shasum -a 256 "${TMP_YQ}" | awk '{print $1}')"
             fi
-            if [[ "${ACTUAL_SHA}" != "${EXPECTED_SHA}" ]]; then
-              echo "yq checksum mismatch for ${YQ_VERSION_TRIMMED}" >&2
-              exit 1
-            fi
+            [[ "${ACTUAL_SHA}" == "${EXPECTED_SHA}" ]] || { echo "yq checksum mismatch" >&2; exit 1; }
+
             install -m 0755 "${TMP_YQ}" "$HOME/.local/bin/yq"
-            cleanup
+            rm -f "${TMP_YQ}" "${TMP_SHA}"
+            # Cleanup trap deaktivieren, da temporäre Dateien bereits entfernt wurden.
             trap - EXIT
-            ACTUAL="$( "$HOME"/.local/bin/yq --version 2>/dev/null || true)"
-            EXPECTED_VERSION_PREFIX="yq (https://github.com/mikefarah/yq/) version v${YQ_VERSION_TRIMMED}"
-            if [[ "${ACTUAL}" != "${EXPECTED_VERSION_PREFIX}"* ]]; then
-              echo "Failed to install yq v${YQ_VERSION_TRIMMED} (got: ${ACTUAL:-<empty>})" >&2
-              exit 1
-            fi
+
+            echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           fi
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+          if ! command -v yq >/dev/null; then
+            echo "yq installation failed" >&2
+            exit 1
+          fi
+
+          YQ_BIN="$(command -v yq)"
+          EXPECTED_PREFIX="yq (https://github.com/mikefarah/yq/) version v${YQ_VER_TRIM}"
+          ACTUAL_VERSION="$(${YQ_BIN} --version 2>/dev/null || true)"
+          if [[ -z "${ACTUAL_VERSION}" || "${ACTUAL_VERSION}" != "${EXPECTED_PREFIX}"* ]]; then
+            echo "yq version mismatch (expected v${YQ_VER_TRIM}, got: ${ACTUAL_VERSION:-<empty>})" >&2
+            exit 1
+          fi
+
+          command -v yq
+          ls -l "${YQ_BIN}"
           yq --version
 
       - name: Read toolchain versions

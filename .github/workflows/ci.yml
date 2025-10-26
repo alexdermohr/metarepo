@@ -36,10 +36,8 @@ concurrency:
 
 defaults:
   run:
-    # Ensure Bash scripts behave consistently across the matrix.
-    # GitHub provides Bash on all hosted runners (macOS, Ubuntu, GitHub-hosted Windows via Git-Bash),
-    # so explicitly setting the shell avoids PowerShell drift when we expand the matrix later.
-    shell: bash
+    # Keep strict, portable Bash defaults across all steps.
+    shell: bash --noprofile --norc -euo pipefail {0}
 
 jobs:
   ci:
@@ -60,15 +58,14 @@ jobs:
       RUSTDOCFLAGS: "-Dwarnings"
     steps:
       - name: Checkout repository
-        # Commit pin for reproducibility (this SHA corresponds to v4)
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a96968112b
+        # Pin to the v4.2.2 commit for reproducibility (update when bumping).
+        uses: actions/checkout@a5ac7e54b508e203cb80d02e7a928114292adde3
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: Load yq version pin
         run: |
-          set -euo pipefail
           test -f toolchain.versions.yml || { echo "toolchain.versions.yml not found" >&2; exit 1; }
           if command -v python3 >/dev/null; then
             PYTHON_BIN=python3
@@ -78,15 +75,34 @@ jobs:
             echo "Python interpreter required to parse toolchain.versions.yml" >&2
             exit 1
           fi
-          chmod +x .github/workflows/get-yq-version.py
-          YQ_VER="$("${PYTHON_BIN}" .github/workflows/get-yq-version.py)"
+          if [[ -f .github/workflows/get-yq-version.py ]]; then
+            YQ_VER="$("${PYTHON_BIN}" .github/workflows/get-yq-version.py)"
+          else
+            YQ_VER="$("${PYTHON_BIN}" - <<'PY'
+import pathlib
+import re
+import sys
+
+toolchain_path = pathlib.Path("toolchain.versions.yml")
+try:
+    contents = toolchain_path.read_text(encoding="utf-8")
+except FileNotFoundError:
+    sys.exit("toolchain.versions.yml not found")
+
+match = re.search(r"^yq:\s*\"?([^\"#\n]+)\"?", contents, re.MULTILINE)
+if not match:
+    sys.exit("yq version missing in toolchain.versions.yml")
+
+print(match.group(1).strip())
+PY
+)"
+          fi
           test -n "${YQ_VER}" || { echo "Failed to resolve yq version" >&2; exit 1; }
           echo "YQ_VERSION=${YQ_VER}" >> "$GITHUB_ENV"
           echo "Resolved yq version ${YQ_VER}"
 
       - name: Ensure yq is available
         run: |
-          set -euo pipefail
           mkdir -p "$HOME/.local/bin"
           export YQ_VERSION="${YQ_VERSION:?YQ_VERSION not set}"
           YQ_VER_TRIM="${YQ_VERSION#v}"
@@ -293,7 +309,6 @@ jobs:
       - name: Create uv virtual environment
         if: ${{ hashFiles('**/requirements*.txt') != '' }}
         run: |
-          set -euo pipefail
           if [[ -d .venv ]]; then
             echo "Using cached uv virtual environment"
           else
@@ -308,7 +323,6 @@ jobs:
         env:
           UV_PROJECT_ENVIRONMENT: ${{ env.UV_PROJECT_ENVIRONMENT }}
         run: |
-          set -euo pipefail
           TMP_REQUIREMENTS="$(mktemp)"
           trap 'rm -f "${TMP_REQUIREMENTS}"' EXIT
           {
@@ -339,7 +353,6 @@ jobs:
       - name: Sync pyproject environment with uv
         if: ${{ hashFiles('**/pyproject.toml') != '' }}
         run: |
-          set -euo pipefail
           uv sync --frozen
           uv pip list | sed -n '1,80p'
           uv python --version

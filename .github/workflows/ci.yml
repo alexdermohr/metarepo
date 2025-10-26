@@ -60,7 +60,7 @@ jobs:
       RUSTDOCFLAGS: "-Dwarnings"
     steps:
       - name: Checkout repository
-        # Commit pin (matches v4 release) to prevent tag drift and ensure reproducibility
+        # Commit pin for reproducibility (this SHA corresponds to v4)
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a96968112b
         with:
           fetch-depth: 0
@@ -79,7 +79,7 @@ jobs:
             exit 1
           fi
           chmod +x .github/workflows/get-yq-version.py
-          YQ_VER="$(.github/workflows/get-yq-version.py)"
+          YQ_VER="$("${PYTHON_BIN}" .github/workflows/get-yq-version.py)"
           test -n "${YQ_VER}" || { echo "Failed to resolve yq version" >&2; exit 1; }
           echo "YQ_VERSION=${YQ_VER}" >> "$GITHUB_ENV"
           echo "Resolved yq version ${YQ_VER}"
@@ -94,7 +94,7 @@ jobs:
           if [[ -x scripts/tools/yq-pin.sh ]]; then
             scripts/tools/yq-pin.sh ensure
           elif ! command -v yq >/dev/null; then
-            OS="$(uname -s | tr '[:upper:]' '[:lower:]' )"   # linux | darwin
+            OS="$(uname -s | tr '[:upper:]' '[:lower:]')"   # linux | darwin
             ARCH_RAW="$(uname -m)"                          # x86_64 | aarch64 | arm64 | ...
             case "$ARCH_RAW" in
               x86_64) ARCH="amd64" ;;
@@ -102,7 +102,6 @@ jobs:
               *) echo "Unsupported architecture: $ARCH_RAW" >&2; exit 1 ;;
             esac
 
-            # YQ_VERSION kann mit oder ohne führendes 'v' kommen – normalize:
             YQ_URL="https://github.com/mikefarah/yq/releases/download/v${YQ_VER_TRIM}/yq_${OS}_${ARCH}"
             YQ_SHA_URL="${YQ_URL}.sha256"
 
@@ -111,8 +110,8 @@ jobs:
             trap 'rm -f "${TMP_YQ}" "${TMP_SHA}"' EXIT
 
             echo "Downloading yq v${YQ_VER_TRIM} from ${YQ_URL}"
-            curl -LsSf "${YQ_URL}" -o "${TMP_YQ}"
-            curl -LsSf "${YQ_SHA_URL}" -o "${TMP_SHA}"
+            curl --retry 3 --retry-all-errors -LsSf "${YQ_URL}" -o "${TMP_YQ}"
+            curl --retry 3 --retry-all-errors -LsSf "${YQ_SHA_URL}" -o "${TMP_SHA}"
 
             EXPECTED_SHA="$(cut -d' ' -f1 "${TMP_SHA}")"
             if command -v sha256sum >/dev/null; then
@@ -124,7 +123,6 @@ jobs:
 
             install -m 0755 "${TMP_YQ}" "$HOME/.local/bin/yq"
             rm -f "${TMP_YQ}" "${TMP_SHA}"
-            # Cleanup trap deaktivieren, da temporäre Dateien bereits entfernt wurden.
             trap - EXIT
 
             echo "$HOME/.local/bin" >> "$GITHUB_PATH"
@@ -135,17 +133,10 @@ jobs:
             exit 1
           fi
 
-          YQ_BIN="$(command -v yq)"
-          EXPECTED_PREFIX="yq (https://github.com/mikefarah/yq/) version v${YQ_VER_TRIM}"
-          ACTUAL_VERSION="$(${YQ_BIN} --version 2>/dev/null || true)"
-          if [[ -z "${ACTUAL_VERSION}" || "${ACTUAL_VERSION}" != "${EXPECTED_PREFIX}"* ]]; then
-            echo "yq version mismatch (expected v${YQ_VER_TRIM}, got: ${ACTUAL_VERSION:-<empty>})" >&2
-            exit 1
-          fi
-
-          command -v yq
-          ls -l "${YQ_BIN}"
-          yq --version
+          YQ_VERSION_OUTPUT="$(yq --version)"
+          echo "${YQ_VERSION_OUTPUT}"
+          test "${YQ_VERSION_OUTPUT}" = "yq (https://github.com/mikefarah/yq/) version v${YQ_VER_TRIM}"
+          echo "✅ yq ${YQ_VER_TRIM} verified OK"
 
       - name: Read toolchain versions
         run: |

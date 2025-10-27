@@ -1,6 +1,9 @@
 name: validate-templates
 permissions:
   contents: read
+concurrency:
+  group: validate-templates-${{ github.ref }}
+  cancel-in-progress: true
 
 defaults:
   run:
@@ -24,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@a5ac7e54b508e203cb80d02e7a928114292adde3 # actions/checkout@v4
+      - uses: actions/checkout@v4 # actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@b55428b3186412ab7664c751e0b43c43eb1cc02a # actions/setup-python@v5
         with:

@@ -21,7 +21,7 @@ jobs:
       ASK_ENDPOINT_URL: ${{ secrets.ASK_ENDPOINT_URL }}
       METRICS_SNAPSHOT_URL: ${{ secrets.METRICS_SNAPSHOT_URL }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@a5ac7e54b508e203cb80d02e7a928114292adde3 # actions/checkout@v4.2.2 (pinned)
 
       - name: Query /ask endpoint (optional)
         if: ${{ env.ASK_ENDPOINT_URL != '' }}
@@ -34,7 +34,7 @@ jobs:
 
       - name: Upload /ask response artifact
         if: ${{ hashFiles('ask.txt') != '' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@0b4b9c8226810f08dc095067d8a2493d80274b94 # actions/upload-artifact@v4.3.1 (pinned)
         with:
           name: ask-response-${{ github.run_id }}
           path: ask.txt

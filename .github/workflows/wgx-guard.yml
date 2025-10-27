@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@a5ac7e54b508e203cb80d02e7a928114292adde3 # actions/checkout@v4.2.2 (pinned)
 
       - name: Check .wgx/profile.yml presence
         run: |
@@ -71,7 +71,7 @@ jobs:
       - name: (Optional) UV bootstrap (pyproject present)
         if: ${{ hashFiles('pyproject.toml') != '' }}
         # Pin to a maintained major version to reduce supply-chain drift.
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@0c5ec6682189e50e54f9b89e0ee1d3f3f94a639a # astral-sh/setup-uv@v3 (pinned)
 
       - name: Sync Python project with uv
         if: ${{ hashFiles('pyproject.toml') != '' && !cancelled() }}

@@ -17,7 +17,7 @@ Metarepo dient als zentraler, lernender Meta-Layer. Es spiegelt **kanonische Tem
 - Einheitliche Pfade:
   - Workflows: `.github/workflows/*.yml`
   - WGX-Profil: `.wgx/profile.yml`
-  - Docs: `docs/**`, inkl. `docs/wgx-konzept.md`, ADR Template `docs/adr/0000-template.md`
+  - Docs: `docs/**`, inkl. `docs/wgx-konzept.md`, ADR Template `docs/adrs/0000-template.md`
   - Justfile: `Justfile`
 - Änderungen laufen über PRs mit **Reconciliation Report**.
 - Commit-Konvention (empfohlen):

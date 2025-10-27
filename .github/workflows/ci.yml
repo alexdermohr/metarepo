@@ -1,5 +1,5 @@
 name: CI
-# Linked ADR: docs/adrs/ADR-0001-toolchain-strategy.md
+# Linked ADR: docs/adrs/0001-contracts-v1-jsonl.md
 
 permissions:
   contents: read  # Limit default token scope for least privilege.
@@ -13,6 +13,7 @@ on:
       - '**/*.py'
       - '**/pyproject.toml'
       - 'Justfile'
+      - '.lychee.toml'
       - 'scripts/**'
       - '.github/workflows/ci.yml'
       - 'toolchain.versions.yml'
@@ -23,6 +24,7 @@ on:
       - '**/*.py'
       - '**/pyproject.toml'
       - 'Justfile'
+      - '.lychee.toml'
       - 'scripts/**'
       - '.github/workflows/ci.yml'
       - 'toolchain.versions.yml'
@@ -59,7 +61,7 @@ jobs:
     steps:
       - name: Checkout repository
         # Use the stable v4 release to ensure the action is available.
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a27f20168f # actions/checkout@v4.1.6 (pinned)
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -382,6 +384,27 @@ PY
           else
             echo "just not installed"
           fi
+
+      - name: Cache lychee URL state
+        if: runner.os == 'Linux' && hashFiles('.lychee.toml') != ''
+        uses: actions/cache@13c3b5c0b52e77e8fa7b4e3d6a238602b25e9a3a # actions/cache@v4.0.2 (pinned)
+        with:
+          path: ~/.cache/lychee
+          key: ${{ runner.os }}-lychee-${{ hashFiles('.lychee.toml', 'README.md', 'docs/**/*.md') }}
+          restore-keys: |
+            ${{ runner.os }}-lychee-
+
+      - name: Link check with Lychee (Linux)
+        if: runner.os == 'Linux' && hashFiles('.lychee.toml') != ''
+        uses: lycheeverse/lychee-action@5cf314b5a0a67e3deb18f0d33bd583a14bcf69dc # lycheeverse/lychee-action@v2.0.2 (pinned)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LYCHEE_CACHE_DIR: ~/.cache/lychee
+        with:
+          # nutzt deine .lychee.toml (inkl. inputs), kein doppelter Pfad nötig
+          args: --config .lychee.toml --statistics
+          # schlägt den Job hart fehl, wenn Links kaputt sind
+          fail: true
 
       - name: Lint GitHub Actions workflows
         if: runner.os == 'Linux'

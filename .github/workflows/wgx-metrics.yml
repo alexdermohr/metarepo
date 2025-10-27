@@ -1,5 +1,12 @@
 name: wgx metrics (reusable)
 
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
+
 on:
   workflow_call:
     inputs:
@@ -14,11 +21,12 @@ on:
 jobs:
   metrics:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@a5ac7e54b508e203cb80d02e7a928114292adde3 # actions/checkout@v4
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@5e221d4786ffb21088b21dfc9c80efb16b52cd3b # actions/setup-node@v4.0.2
         with:
           node-version: "20"
 

@@ -1,6 +1,14 @@
 name: adr-lint
 permissions:
   contents: read
+concurrency:
+  group: adr-lint-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
+
 on:
   pull_request:
     paths: ['docs/adr/**']
@@ -8,8 +16,9 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4 # actions/checkout@v4
       - name: Check filenames & headers
         run: |
           fail=0

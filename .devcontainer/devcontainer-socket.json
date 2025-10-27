@@ -2,8 +2,9 @@
   "name": "metarepo (docker-socket)",
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {},
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
     "ghcr.io/devcontainers/features/yq:1": { "version": "4.44.3" },
-    "ghcr.io/devcontainers/features/uv:1": { "version": "0.7.0" },
+    "ghcr.io/devcontainers/features/uv:1": { "version": "0.4.20" },
     "ghcr.io/devcontainers/features/rust:1": {
       "profile": "minimal",
       "components": "clippy,rustfmt",
@@ -20,6 +21,7 @@
         "ms-python.python",
         "ms-python.vscode-pylance",
         "tamasfe.even-better-toml",
+        "ms-azuretools.vscode-docker",
         "redhat.vscode-yaml",
         "streetsidesoftware.code-spell-checker",
         "davidAnson.vscode-markdownlint",

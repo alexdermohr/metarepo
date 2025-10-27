@@ -1,5 +1,18 @@
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
+# --- Meta ---------------------------------------------------------------------
+default: help
+
+help:
+    @printf "Metarepo Justfile – häufige Kommandos:\n"
+    @printf "  just deps          # Tooling & Pins via uv sync --frozen\n"
+    @printf "  just list          # WGX-Liste aller angebundenen Repos\n"
+    @printf "  just up            # Templates synchronisieren (wgx up)\n"
+    @printf "  just validate      # Lokale Checks (Linting, Format, yq)\n"
+    @printf "  just smoke         # Schneller Fleet-Integrationslauf\n"
+    @printf "  just log-sync      # Report-Vorlage unter reports/sync-logs/\n"
+    @printf "\nWeitere Ziele: just --list\n"
+
 # --- Aliase -------------------------------------------------------------------
 alias wgx := _wgx
 alias yq  := _yq

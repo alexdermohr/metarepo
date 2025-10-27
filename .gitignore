@@ -22,3 +22,7 @@ tools/bin/*
 
 # tmp
 tmp/
+
+# Devcontainer
+.devcontainer/devcontainer.json
+.devcontainer/.devcache/

@@ -1,5 +1,14 @@
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
+# --- Devcontainer integration (auto-imported) ---
+# erlaubt z. B.:
+#   just devcontainer:sync
+#   just devcontainer:socket
+#   just devcontainer:dind
+#   just devcontainer:which
+if (import_path := ".devcontainer/justfile") != "" && path_exists(import_path)
+    import import_path
+end
 # --- Meta ---------------------------------------------------------------------
 default: help
 

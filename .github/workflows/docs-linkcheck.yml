@@ -2,6 +2,14 @@ name: docs-linkcheck
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
+
+concurrency:
+  group: docs-linkcheck-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   schedule:
     - cron: "0 3 * * *"
@@ -10,9 +18,20 @@ on:
 jobs:
   lychee:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@a5ac7e54b508e203cb80d02e7a928114292adde3 # actions/checkout@v4
+      - name: Cache lychee URL state
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/lychee
+          key: ${{ runner.os }}-lychee-${{ hashFiles('.lychee.toml', 'README.md', 'docs/**/*.md') }}
+          restore-keys: |
+            ${{ runner.os }}-lychee-
       - name: Check documentation links
         uses: lycheeverse/lychee-action@v2.0.2
         with:
           args: --no-progress --exclude-mail --timeout 10s docs/**/*.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LYCHEE_CACHE_DIR: ~/.cache/lychee

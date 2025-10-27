@@ -1,5 +1,12 @@
 name: reusable-validate-jsonl
 
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
+
 on:
   workflow_call:
     inputs:
@@ -39,10 +46,10 @@ on:
 jobs:
   validate-jsonl:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 40
     steps:
       - name: Checkout caller repo
-        uses: actions/checkout@8ade135a242bde00fd19c0e54fb3760beea110ee # v4.1.0
+        uses: actions/checkout@a5ac7e54b508e203cb80d02e7a928114292adde3 # actions/checkout@v4
 
       - name: Setup Node
         uses: actions/setup-node@5e221d4786ffb21088b21dfc9c80efb16b52cd3b # v4.0.2

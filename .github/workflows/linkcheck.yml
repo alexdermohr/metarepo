@@ -15,14 +15,19 @@ on:
       - .github/workflows/linkcheck.yml
 permissions:
   contents: read
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
 concurrency:
   group: linkcheck-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   lychee:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@a5ac7e54b508e203cb80d02e7a928114292adde3 # actions/checkout@v4
       - name: Cache lychee URL state
         uses: actions/cache@v4
         with:
@@ -31,7 +36,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-lychee-
       - name: Run lychee on docs & README
-        uses: lycheeverse/lychee-action@v2
+        uses: lycheeverse/lychee-action@v2.0.2
         with:
           args: --config .lychee.toml --no-progress README.md docs/**/*.md
           fail: true

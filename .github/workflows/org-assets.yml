@@ -33,13 +33,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4 # actions/checkout@v4
+      - uses: actions/checkout@a5ac7e54b508e203cb80d02e7a928114292adde3 # actions/checkout@v4.2.2 (pinned)
         with:
           fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - uses: actions/cache@v4
+      - uses: actions/cache@13c3b5c0b52e77e8fa7b4e3d6a238602b25e9a3a # actions/cache@v4.0.2 (pinned)
         with:
           path: |
             ~/.cache/uv
@@ -47,7 +47,7 @@ jobs:
           key: ${{ runner.os }}-py311-uv-${{ hashFiles('uv.lock') }}
           restore-keys: |
             ${{ runner.os }}-py311-uv-
-      - uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@0c5ec6682189e50e54f9b89e0ee1d3f3f94a639a # astral-sh/setup-uv@v3 (pinned)
       - run: uv sync --frozen
       - run: uv run scripts/generate_org_assets.py --repos-file repos.yml --index docs/org-index.md --graph docs/org-graph.mmd
       - name: Fail PR if org assets drift

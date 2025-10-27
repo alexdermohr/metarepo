@@ -20,18 +20,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4 # actions/checkout@v4
+      - uses: actions/checkout@a5ac7e54b508e203cb80d02e7a928114292adde3 # actions/checkout@v4.2.2 (pinned)
       - name: Cache lychee URL state
-        uses: actions/cache@v4
+        uses: actions/cache@13c3b5c0b52e77e8fa7b4e3d6a238602b25e9a3a # actions/cache@v4.0.2 (pinned)
         with:
           path: ~/.cache/lychee
           key: ${{ runner.os }}-lychee-${{ hashFiles('.lychee.toml', 'README.md', 'docs/**/*.md') }}
           restore-keys: |
             ${{ runner.os }}-lychee-
-      - name: Check documentation links
-        uses: lycheeverse/lychee-action@v2.0.2
-        with:
-          args: --no-progress --exclude-mail --timeout 10s docs/**/*.md
+      - name: Check documentation links (uses .lychee.toml)
+        uses: lycheeverse/lychee-action@5cf314b5a0a67e3deb18f0d33bd583a14bcf69dc # lycheeverse/lychee-action@v2.0.2 (pinned)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LYCHEE_CACHE_DIR: ~/.cache/lychee
+        with:
+          args: --config .lychee.toml --statistics
+          fail: true

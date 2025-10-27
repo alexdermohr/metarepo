@@ -53,6 +53,15 @@ Kurzfassung:
 
 > Hinweis: Der `/ask`-Server begrenzt den Parameter `k` auf ≤100. Für automatisierte Checks setze `ASK_ENDPOINT_URL` und `METRICS_SNAPSHOT_URL` als Secrets.
 
+## Devcontainer
+Siehe [.devcontainer/README.md](.devcontainer/README.md) für die Docker-Socket- und Docker-in-Docker-Varianten. Wähle die gewünschte Variante via `just devcontainer:socket` bzw. `just devcontainer:dind` oder synchronisiere Pins mit `just devcontainer:sync`.
+
+```bash
+# Pins aktualisieren und Socket-Variante setzen
+just devcontainer:sync
+just devcontainer:socket
+```
+
 ## Contracts (Kurz)
 Zentrale Schemas und Reusables liegen im metarepo und werden über Tags (z. B. `contracts-v1`) konsumiert. Details: [docs/contracts/index.md](docs/contracts/index.md)
 

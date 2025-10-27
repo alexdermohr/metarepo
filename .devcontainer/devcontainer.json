@@ -1,0 +1,12 @@
+{
+  "name": "metarepo",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:latest": {},
+    "ghcr.io/devcontainers/features/yq:latest": {},
+    "ghcr.io/devcontainers/features/uv:latest": {},
+    "ghcr.io/devcontainers/features/rust:latest": {},
+    "ghcr.io/devcontainers/features/just:latest": {},
+    "ghcr.io/devcontainers/features/shellcheck:latest": {},
+    "ghcr.io/devcontainers/features/vale:latest": {}
+  }
+}

@@ -75,11 +75,17 @@ def _coerce_records(frame: Any) -> Iterator[Dict[str, Any]]:
 
 
 def _normalise_doc_id(value: Any) -> str:
-    if value is None:
+    """Return a normalised doc_id string or raise on missing/sentinel values.
+
+    Rejects: None, NaN, empty/whitespace and common stringified sentinels
+    {"nan","null","none"} (case-insensitive).
+    """
+
+    if value is None or _is_nan(value):
         raise ValueError("doc_id column is required")
     doc_id = str(value).strip()
-    if not doc_id:
-        raise ValueError("doc_id must contain non-whitespace characters")
+    if not doc_id or doc_id.lower() in {"nan", "null", "none"}:
+        raise ValueError("doc_id must be a non-empty, non-sentinel string")
     return doc_id
 
 

@@ -1,0 +1,47 @@
+name: agents (template)
+permissions:
+  contents: read
+on:
+  push:
+    paths:
+      - "templates/agent-kit/**"
+      - "!templates/agent-kit/**/*.md"
+      - ".github/workflows/agents-ci.yml"
+  pull_request:
+    paths:
+      - "templates/agent-kit/**"
+      - "!templates/agent-kit/**/*.md"
+      - ".github/workflows/agents-ci.yml"
+concurrency:
+  group: agents-ci-${{ github.ref }}
+  cancel-in-progress: true
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
+jobs:
+  kit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@a5ac7e54b508e203cb80d02e7a928114292adde3 # v4.2.2
+      - name: Setup Python
+        uses: actions/setup-python@b55428b3186412ab7664c751e0b43c43eb1cc02a # v5
+        with:
+          python-version: "3.11"
+      - name: Cache uv
+        uses: actions/cache@13c3b5c0b52e77e8fa7b4e3d6a238602b25e9a3a # v4.0.2
+        with:
+          path: |
+            ~/.cache/uv
+            templates/agent-kit/.venv
+          key: ${{ runner.os }}-uv-${{ hashFiles('templates/agent-kit/pyproject.toml','templates/agent-kit/uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-
+      - name: Install uv
+        uses: astral-sh/setup-uv@0c5ec6682189e50e54f9b89e0ee1d3f3f94a639a # v3
+      - name: Test template
+        working-directory: templates/agent-kit
+        run: |
+          uv lock
+          uv sync --frozen
+          uv run -m pytest

@@ -60,8 +60,7 @@ jobs:
       RUSTDOCFLAGS: "-Dwarnings"
     steps:
       - name: Checkout repository
-        # Use the stable v4 release to ensure the action is available.
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a27f20168f # actions/checkout@v4.1.6 (pinned)
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: false

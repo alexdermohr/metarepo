@@ -25,3 +25,9 @@ TOOL_REGISTRY = {
     "search_codebase": search_codebase,
     "query_knowledge_graph": query_knowledge_graph,
 }
+
+
+def _require(name: str):
+    if name not in TOOL_REGISTRY:
+        raise KeyError(f"tool not registered: {name}")
+    return TOOL_REGISTRY[name]

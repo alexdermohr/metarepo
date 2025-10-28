@@ -6,6 +6,12 @@ def test_build_graph_compiles():
     assert graph is not None
 
 
+def test_supervisor_registered_node():
+    graph = build_graph()
+    out = graph.invoke({"messages": [], "current_task": ""})
+    assert isinstance(out, dict)
+
+
 def test_route_and_invoke_code_path():
     graph = build_graph()
     init = {

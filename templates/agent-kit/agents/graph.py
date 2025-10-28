@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Literal, Dict, Any
 from langgraph.graph import StateGraph, END
 from .state import AssistantState
-from .tools import TOOL_REGISTRY
+from .tools import _require
 
 
 def supervisor(state: AssistantState) -> Literal["code_agent", "knowledge_agent", "done"]:
@@ -17,7 +17,7 @@ def supervisor(state: AssistantState) -> Literal["code_agent", "knowledge_agent"
 def code_agent(state: AssistantState) -> AssistantState:
     msg = (state.get("messages") or [])[-1] if state.get("messages") else {}
     query = msg.get("content", "")
-    tool = TOOL_REGISTRY["search_codebase"]
+    tool = _require("search_codebase")
     hits = tool(query=query, repo_filter=None)
     state["result"] = {"agent": "code", "hits": hits}
     return state
@@ -26,7 +26,7 @@ def code_agent(state: AssistantState) -> AssistantState:
 def knowledge_agent(state: AssistantState) -> AssistantState:
     msg = (state.get("messages") or [])[-1] if state.get("messages") else {}
     q = f"SELECT * WHERE {{ ?s ?p ?o }} LIMIT 5  # derived from: {msg.get('content','')!r}"
-    tool = TOOL_REGISTRY["query_knowledge_graph"]
+    tool = _require("query_knowledge_graph")
     rows = tool(sparql_query=q)
     state["result"] = {"agent": "knowledge", "rows": rows}
     return state
@@ -34,6 +34,8 @@ def knowledge_agent(state: AssistantState) -> AssistantState:
 
 def build_graph():
     g = StateGraph(AssistantState)
+    # Register all nodes before wiring edges/entry points
+    g.add_node("supervisor", supervisor)
     g.add_node("code_agent", code_agent)
     g.add_node("knowledge_agent", knowledge_agent)
     g.add_conditional_edges("supervisor", supervisor, {

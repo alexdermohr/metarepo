@@ -440,8 +440,64 @@ PY
           test -f Justfile || { echo "Justfile missing"; exit 1; }
           just ci
 
+      # Guard: determine whether the web scaffold is complete before running expensive steps.
+      - name: (web) Determine scaffold state
+        id: webvars
+        run: |
+          set -euo pipefail
+
+          if [ -f apps/web/package.json ]; then
+            echo "has_package_json=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "has_package_json=false" >>"$GITHUB_OUTPUT"
+          fi
+
+          if [ -f apps/web/package-lock.json ]; then
+            has_lockfile=true
+          else
+            has_lockfile=false
+          fi
+
+          if compgen -G 'apps/web/svelte.config.*' >/dev/null || [ -f apps/web/tsconfig.json ]; then
+            has_config=true
+          else
+            has_config=false
+          fi
+
+          if [ "$has_lockfile" = true ] && [ "$has_config" = true ]; then
+            echo "enabled=true" >>"$GITHUB_OUTPUT"
+            echo "missing=" >>"$GITHUB_OUTPUT"
+          else
+            missing_parts=()
+            if [ "$has_lockfile" != true ]; then
+              missing_parts+=("package-lock.json")
+            fi
+            if [ "$has_config" != true ]; then
+              missing_parts+=("Svelte/TS config")
+            fi
+
+            if [ "${#missing_parts[@]}" -gt 0 ]; then
+              missing_joined=$(IFS=', '; echo "${missing_parts[*]}")
+            else
+              missing_joined=""
+            fi
+
+            echo "enabled=false" >>"$GITHUB_OUTPUT"
+            echo "missing=${missing_joined}" >>"$GITHUB_OUTPUT"
+          fi
+
+      # Guard: if apps/web exists but lock/configs are missing, skip the web pipeline loudly.
+      - name: (web) Skip web steps (scaffold incomplete)
+        if: ${{ steps.webvars.outputs.has_package_json == 'true' && steps.webvars.outputs.enabled != 'true' }}
+        env:
+          WEB_MISSING: ${{ steps.webvars.outputs.missing }}
+        run: |
+          missing_msg=${WEB_MISSING:-package-lock.json and/or Svelte/TS config}
+          echo "::notice::Found apps/web/package.json, but missing ${missing_msg}."
+          echo "::notice::Skipping web CI steps until scaffold is complete."
+
       - name: (web) Setup Node for apps/web
-        if: ${{ hashFiles('apps/web/package.json') != '' }}
+        if: ${{ steps.webvars.outputs.enabled == 'true' }}
         uses: actions/setup-node@5e221d4786ffb21088b21dfc9c80efb16b52cd3b # actions/setup-node@v4.0.2
         with:
           node-version: '20'
@@ -450,18 +506,12 @@ PY
             apps/web/package-lock.json
 
       - name: (web) Install deps
-        if: ${{ hashFiles('apps/web/package.json') != '' }}
+        if: ${{ steps.webvars.outputs.enabled == 'true' }}
         working-directory: apps/web
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            echo "::warning::package-lock.json fehlt – fallback auf npm install."
-            npm install
-          fi
+        run: npm ci
 
       - name: (web) Cache Playwright browsers
-        if: ${{ hashFiles('apps/web/package.json') != '' }}
+        if: ${{ steps.webvars.outputs.enabled == 'true' }}
         uses: actions/cache@13c3b5c0b52e77e8fa7b4e3d6a238602b25e9a3a # v4.0.2
         with:
           path: ~/.cache/ms-playwright
@@ -471,17 +521,17 @@ PY
             ${{ runner.os }}-ms-playwright-
 
       - name: (web) Install Playwright browsers (with deps)
-        if: ${{ hashFiles('apps/web/package.json') != '' }}
+        if: ${{ steps.webvars.outputs.enabled == 'true' }}
         working-directory: apps/web
         run: npm run test:setup
 
       - name: (web) Build app (required for preview)
-        if: ${{ hashFiles('apps/web/package.json') != '' }}
+        if: ${{ steps.webvars.outputs.enabled == 'true' }}
         working-directory: apps/web
         run: npm run build
 
       - name: (web) Lint & typecheck & budget (guarded)
-        if: ${{ hashFiles('apps/web/package.json') != '' }}
+        if: ${{ steps.webvars.outputs.enabled == 'true' }}
         working-directory: apps/web
         run: |
           set -euo pipefail
@@ -494,7 +544,7 @@ PY
           fi
 
       - name: (web) Run Playwright tests (HTML + line reporter)
-        if: ${{ hashFiles('apps/web/package.json') != '' }}
+        if: ${{ steps.webvars.outputs.enabled == 'true' }}
         env:
           # Der Preview-Server wird vom Playwright webServer gestartet (siehe playwright.config.ts)
           PLAYWRIGHT_SKIP_WEBSERVER: "0"

@@ -27,17 +27,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      # Für Core-Actions nutzen wir stabile Tags statt SHAs, um 404-Risiken zu vermeiden.
-      - uses: actions/checkout@v4
+      # Für Core-Actions nutzen wir stabile Major-Tags statt SHAs, um 404-Risiken zu vermeiden.
+      - uses: actions/checkout@v4 # v4 (major tag)
       - name: Cache lychee URL state
-        uses: actions/cache@v4
+        uses: actions/cache@v4 # v4 (major tag)
         with:
           path: ~/.cache/lychee
           key: ${{ runner.os }}-lychee-${{ hashFiles('.lychee.toml', 'README.md', 'docs/**/*.md', 'contracts/**/*.md') }}
           restore-keys: |
             ${{ runner.os }}-lychee-
       - name: Run lychee on docs & README (uses .lychee.toml)
-        uses: lycheeverse/lychee-action@5cf314b5a0a67e3deb18f0d33bd583a14bcf69dc # lycheeverse/lychee-action@v2.0.2 (pinned)
+        uses: lycheeverse/lychee-action@v2.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LYCHEE_CACHE_DIR: ~/.cache/lychee

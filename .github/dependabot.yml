@@ -11,18 +11,7 @@ updates:
     commit-message:
       prefix: "deps(actions)"
       include: "scope"
-    groups:
-      actions-core:
-        patterns:
-          - "actions/*"
-        update-types:
-          - "minor"
-          - "patch"
-      actions-third-party:
-        patterns:
-          - "*"
-        exclude-patterns:
-          - "actions/*"
-        update-types:
-          - "minor"
-          - "patch"
+    # Hinweis/Note: Dependabot unterstützt bei github-actions KEINE 'groups'-Funktion.
+    # Wenn 'groups' gesetzt ist, stoppt die Verarbeitung der Actions-Updates komplett
+    # (siehe https://github.com/dependabot/dependabot-core/issues/8324).
+    # Daher bewusst ohne Gruppierung / groups intentionally omitted.

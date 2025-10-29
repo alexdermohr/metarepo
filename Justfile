@@ -70,6 +70,34 @@ sync:
 log-sync *args:
     scripts/create-sync-log.py {{args}}
 
+# --- Fleet Push (Wave-1: agent-kit + contracts) --------------------------------
+# Voraussetzungen:
+#  - GitHub CLI (`gh`) mit Push-Rechten
+#  - Python 3.11+
+#  - templates/agent-kit/** vorhanden
+#  - contracts/agent.tool.schema.json vorhanden
+
+# Push für einzelnes Repo
+fleet.push repo?="":
+    @python3 scripts/fleet/push_template.py \
+      --repo "{{repo}}" \
+      --paths "templates/agent-kit" "contracts" \
+      --message "feat: adopt agent-kit + contracts (wave 1)"
+
+# Trockenlauf für einzelnes Repo
+fleet.push-dry repo?="":
+    @python3 scripts/fleet/push_template.py \
+      --repo "{{repo}}" \
+      --paths "templates/agent-kit" "contracts" \
+      --message "feat: adopt agent-kit + contracts (wave 1)" \
+      --dry-run
+
+# Push für alle Repos aus fleet/repos.yml
+fleet.push-all:
+    @python3 scripts/fleet/push_template.py \
+      --paths "templates/agent-kit" "contracts" \
+      --message "feat: adopt agent-kit + contracts (wave 1)"
+
 # Local CI
 validate: yq_ensure
     .github/workflows/validate-local.sh

@@ -49,7 +49,7 @@ jobs:
             fh.write(f"python_version={python_version}\n")
           PY
       - name: Set up Python
-        uses: actions/setup-python@b55428b3186412ab7664c751e0b43c43eb1cc02a # actions/setup-python@v5 (pinned)
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ steps.toolchain.outputs.python_version }}
           cache: 'pip'

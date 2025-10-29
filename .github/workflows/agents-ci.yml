@@ -25,11 +25,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup Python
-        uses: actions/setup-python@b55428b3186412ab7664c751e0b43c43eb1cc02a # v5
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
       - name: Cache uv
-        uses: actions/cache@13c3b5c0b52e77e8fa7b4e3d6a238602b25e9a3a # v4.0.2
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cache/uv

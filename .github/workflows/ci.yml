@@ -235,7 +235,7 @@ PY
 
       - name: Cache Cargo artifacts
         if: ${{ hashFiles('**/Cargo.toml') != '' }}
-        uses: actions/cache@v4
+        uses: actions/cache@v4 # v4 (major tag)
         with:
           path: |
             ~/.cargo/registry
@@ -249,7 +249,7 @@ PY
 
       - name: Setup Python
         if: ${{ hashFiles('**/pyproject.toml') != '' || hashFiles('**/requirements*.txt') != '' }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5 # v5 (major tag)
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -261,7 +261,7 @@ PY
 
       - name: Cache uv package cache
         if: ${{ hashFiles('**/pyproject.toml') != '' }}
-        uses: actions/cache@v4
+        uses: actions/cache@v4 # v4 (major tag)
         with:
           # OS-spezifische uv-Cachepfade
           path: |
@@ -278,7 +278,7 @@ PY
 
       - name: Cache uv virtual environment (requirements)
         if: ${{ hashFiles('**/requirements*.txt') != '' }}
-        uses: actions/cache@v4
+        uses: actions/cache@v4 # v4 (major tag)
         with:
           path: .venv
           key: ${{ runner.os }}-${{ runner.arch }}-uv-venv-${{ env.UV_VERSION }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('**/requirements*.txt') }}
@@ -290,7 +290,7 @@ PY
 
       - name: Cache uv virtual environment (pyproject)
         if: ${{ hashFiles('**/pyproject.toml') != '' && hashFiles('**/requirements*.txt') == '' }}
-        uses: actions/cache@v4
+        uses: actions/cache@v4 # v4 (major tag)
         with:
           path: .venv
           key: ${{ runner.os }}-${{ runner.arch }}-uv-venv-${{ env.UV_VERSION }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('**/pyproject.toml', '**/uv.lock', '**/poetry.lock') }}
@@ -303,7 +303,7 @@ PY
       - name: Install uv
         if: ${{ hashFiles('**/pyproject.toml') != '' || hashFiles('**/requirements*.txt') != '' }}
         # v7
-        uses: astral-sh/setup-uv@0c5ec6682189e50e54f9b89e0ee1d3f3f94a639a
+        uses: astral-sh/setup-uv@v3
         with:
           version: ${{ env.UV_VERSION }}
 
@@ -386,7 +386,7 @@ PY
 
       - name: Cache lychee URL state
         if: runner.os == 'Linux' && hashFiles('.lychee.toml') != ''
-        uses: actions/cache@v4
+        uses: actions/cache@v4 # v4 (major tag)
         with:
           path: ~/.cache/lychee
           key: ${{ runner.os }}-lychee-${{ hashFiles('.lychee.toml', 'README.md', 'docs/**/*.md') }}
@@ -395,7 +395,7 @@ PY
 
       - name: Link check with Lychee (Linux)
         if: runner.os == 'Linux' && hashFiles('.lychee.toml') != ''
-        uses: lycheeverse/lychee-action@5cf314b5a0a67e3deb18f0d33bd583a14bcf69dc # lycheeverse/lychee-action@v2.0.2 (pinned)
+        uses: lycheeverse/lychee-action@v2.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LYCHEE_CACHE_DIR: ~/.cache/lychee
@@ -511,7 +511,7 @@ PY
 
       - name: (web) Cache Playwright browsers
         if: ${{ steps.webvars.outputs.enabled == 'true' }}
-        uses: actions/cache@v4
+        uses: actions/cache@v4 # v4 (major tag)
         with:
           path: ~/.cache/ms-playwright
           # Version ist in devDependency gepinnt (@playwright/test 1.55.1)

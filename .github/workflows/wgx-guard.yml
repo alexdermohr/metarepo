@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4 # v4 (major tag)
 
       - name: Check .wgx/profile.yml presence
         run: |
@@ -30,12 +30,12 @@ jobs:
           echo "found .wgx/profile.yml"
 
       - name: Validate minimal schema keys
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5 # v5 (major tag)
         with:
           python-version: '3.12'
 
       - name: Cache pip downloads
-        uses: actions/cache@v4
+        uses: actions/cache@v4 # v4 (major tag)
         with:
           path: ~/.cache/pip
           key: pip-${{ runner.os }}-${{ hashFiles('.wgx/profile.yml', 'pyproject.toml', 'uv.lock') }}
@@ -79,7 +79,7 @@ jobs:
       - name: (Optional) UV bootstrap (pyproject present)
         if: ${{ hashFiles('pyproject.toml') != '' }}
         # Pin to a maintained major version to reduce supply-chain drift.
-        uses: astral-sh/setup-uv@0c5ec6682189e50e54f9b89e0ee1d3f3f94a639a # astral-sh/setup-uv@v3 (pinned)
+        uses: astral-sh/setup-uv@v3
         with:
           version: "0.7.*"
 

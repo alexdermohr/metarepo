@@ -235,7 +235,7 @@ PY
 
       - name: Cache Cargo artifacts
         if: ${{ hashFiles('**/Cargo.toml') != '' }}
-        uses: actions/cache@13c3b5c0b52e77e8fa7b4e3d6a238602b25e9a3a
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
@@ -249,7 +249,7 @@ PY
 
       - name: Setup Python
         if: ${{ hashFiles('**/pyproject.toml') != '' || hashFiles('**/requirements*.txt') != '' }}
-        uses: actions/setup-python@b55428b3186412ab7664c751e0b43c43eb1cc02a
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -261,7 +261,7 @@ PY
 
       - name: Cache uv package cache
         if: ${{ hashFiles('**/pyproject.toml') != '' }}
-        uses: actions/cache@13c3b5c0b52e77e8fa7b4e3d6a238602b25e9a3a
+        uses: actions/cache@v4
         with:
           # OS-spezifische uv-Cachepfade
           path: |
@@ -278,7 +278,7 @@ PY
 
       - name: Cache uv virtual environment (requirements)
         if: ${{ hashFiles('**/requirements*.txt') != '' }}
-        uses: actions/cache@13c3b5c0b52e77e8fa7b4e3d6a238602b25e9a3a
+        uses: actions/cache@v4
         with:
           path: .venv
           key: ${{ runner.os }}-${{ runner.arch }}-uv-venv-${{ env.UV_VERSION }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('**/requirements*.txt') }}
@@ -290,7 +290,7 @@ PY
 
       - name: Cache uv virtual environment (pyproject)
         if: ${{ hashFiles('**/pyproject.toml') != '' && hashFiles('**/requirements*.txt') == '' }}
-        uses: actions/cache@13c3b5c0b52e77e8fa7b4e3d6a238602b25e9a3a
+        uses: actions/cache@v4
         with:
           path: .venv
           key: ${{ runner.os }}-${{ runner.arch }}-uv-venv-${{ env.UV_VERSION }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('**/pyproject.toml', '**/uv.lock', '**/poetry.lock') }}
@@ -386,7 +386,7 @@ PY
 
       - name: Cache lychee URL state
         if: runner.os == 'Linux' && hashFiles('.lychee.toml') != ''
-        uses: actions/cache@13c3b5c0b52e77e8fa7b4e3d6a238602b25e9a3a # actions/cache@v4.0.2 (pinned)
+        uses: actions/cache@v4
         with:
           path: ~/.cache/lychee
           key: ${{ runner.os }}-lychee-${{ hashFiles('.lychee.toml', 'README.md', 'docs/**/*.md') }}
@@ -497,7 +497,7 @@ PY
 
       - name: (web) Setup Node for apps/web
         if: ${{ steps.webvars.outputs.enabled == 'true' }}
-        uses: actions/setup-node@5e221d4786ffb21088b21dfc9c80efb16b52cd3b # actions/setup-node@v4.0.2
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
@@ -511,7 +511,7 @@ PY
 
       - name: (web) Cache Playwright browsers
         if: ${{ steps.webvars.outputs.enabled == 'true' }}
-        uses: actions/cache@13c3b5c0b52e77e8fa7b4e3d6a238602b25e9a3a # v4.0.2
+        uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
           # Version ist in devDependency gepinnt (@playwright/test 1.55.1)

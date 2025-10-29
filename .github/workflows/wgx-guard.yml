@@ -34,6 +34,14 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Cache pip downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-${{ hashFiles('.wgx/profile.yml', 'pyproject.toml', 'uv.lock') }}
+          restore-keys: |
+            pip-${{ runner.os }}-
+
       - name: Install PyYAML for schema check
         run: |
           python -m pip install --upgrade pip
@@ -72,12 +80,23 @@ jobs:
         if: ${{ hashFiles('pyproject.toml') != '' }}
         # Pin to a maintained major version to reduce supply-chain drift.
         uses: astral-sh/setup-uv@0c5ec6682189e50e54f9b89e0ee1d3f3f94a639a # astral-sh/setup-uv@v3 (pinned)
+        with:
+          version: "0.7.*"
 
       - name: Sync Python project with uv
         if: ${{ hashFiles('pyproject.toml') != '' && !cancelled() }}
         run: |
-          uv --version
+          # Beispielausgabe: "uv 0.7.3 (rev abcdef)" – Regex toleriert Zusatzinfos am Ende
+          ver="$(uv --version)"
+          echo "$ver"
+          if ! [[ "$ver" =~ ^uv\ 0\.7\. ]]; then
+            echo "::error::uv 0.7.x erwartet, gefunden: $ver"
+            exit 1
+          fi
           uv sync --frozen
+          if ! uv pip check; then
+            echo "::warning::dependency conflicts detected"
+          fi
 
       - name: Done
         run: echo "wgx-guard passed ✅"

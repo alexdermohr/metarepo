@@ -3,10 +3,26 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 5
+      interval: "daily"
+    open-pull-requests-limit: 10
     labels:
-      - "dependencies"
+      - "deps"
+      - "deps:actions"
     commit-message:
-      prefix: "deps"
+      prefix: "deps(actions)"
       include: "scope"
+    groups:
+      actions-core:
+        patterns:
+          - "actions/*"
+        update-types:
+          - "minor"
+          - "patch"
+      actions-third-party:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "actions/*"
+        update-types:
+          - "minor"
+          - "patch"

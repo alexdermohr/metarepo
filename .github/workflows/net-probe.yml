@@ -1,0 +1,37 @@
+name: net-probe
+permissions:
+  contents: read
+on:
+  push:
+    paths:
+      - '.github/workflows/net-probe.yml'
+  pull_request:
+    paths:
+      - '.github/workflows/net-probe.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: net-probe-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4 # v4 (major tag)
+
+      - name: Check outbound HTTPS access (GitHub, PyPI, crates.io)
+        run: |
+          set -x
+          curl -fsSL https://api.github.com/rate_limit | head -n1
+          curl -fsI https://pypi.org/simple/ | head -n1
+          curl -fsI https://crates.io/ | head -n1
+
+      - name: Detect proxy variables
+        run: |
+          env | grep -iE '(^|_)http_proxy=|(^|_)https_proxy=' || echo 'no proxies set'

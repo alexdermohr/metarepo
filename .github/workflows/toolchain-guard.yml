@@ -1,0 +1,92 @@
+name: toolchain-guard
+permissions:
+  contents: read
+on:
+  push:
+    paths:
+      - '.github/workflows/toolchain-guard.yml'
+      - 'Justfile'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'scripts/**'
+  pull_request:
+    paths:
+      - '.github/workflows/toolchain-guard.yml'
+      - 'Justfile'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'scripts/**'
+  workflow_dispatch:
+
+concurrency:
+  group: toolchain-guard-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4 # v4 (major tag)
+
+      - name: Setup Python
+        uses: actions/setup-python@v5 # v5 (major tag)
+        with:
+          python-version: '3.11'
+
+      - name: Cache uv
+        uses: actions/cache@v4 # v4 (major tag)
+        with:
+          path: |
+            ~/.cache/uv
+            .venv
+          key: ${{ runner.os }}-py311-uv-${{ hashFiles('uv.lock', 'pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-py311-uv-
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Bootstrap project (optional)
+        run: |
+          if [[ -f pyproject.toml ]]; then
+            uv sync --frozen || true
+          else
+            echo 'pyproject.toml missing – skip uv sync'
+          fi
+
+      - name: Ensure required CLI tools
+        run: |
+          missing=()
+          for tool in just yq gh; do
+            if ! command -v "$tool" >/dev/null 2>&1; then
+              echo "::warning::missing tool: $tool"
+              missing+=("$tool")
+            fi
+          done
+          if ((${#missing[@]})); then
+            printf 'Missing required tools: %s\n' "${missing[*]}"
+            exit 1
+          fi
+          if ! command -v ruby >/dev/null 2>&1; then
+            echo '::notice::ruby not installed (optional)'
+          fi
+
+      - name: Lint GitHub workflows (actionlint)
+        uses: docker://ghcr.io/rhysd/actionlint:1.7.1
+        with:
+          args: -color
+
+      - name: Show tool versions
+        run: |
+          set +e
+          command -v uv >/dev/null 2>&1 && uv --version
+          command -v just >/dev/null 2>&1 && just --version
+          command -v yq >/dev/null 2>&1 && yq --version
+          command -v gh >/dev/null 2>&1 && gh --version
+          command -v ruby >/dev/null 2>&1 && ruby --version
+          set -e

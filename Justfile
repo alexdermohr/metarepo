@@ -101,9 +101,58 @@ fleet.push-all:
 # Local CI
 validate: yq_ensure
     .github/workflows/validate-local.sh
+    @printf "Running actionlint (Docker)…\n"
+    if command -v docker >/dev/null 2>&1; then \
+      docker run --rm -v "$PWD:/repo" -w /repo ghcr.io/rhysd/actionlint:1.7.1 -color \
+        || (echo "::error::actionlint failed" && exit 1); \
+    else \
+      echo "::warning::docker not available – skipping actionlint"; \
+    fi
+    @if [ -d contracts ]; then \
+      echo "contracts folder detected – run 'just contracts:validate' for schema checks"; \
+    fi
 
 ci:
     just validate
+
+contracts:validate:
+    @bash -euo pipefail <<'EOS'
+    if [[ ! -d contracts ]]; then
+        echo "contracts directory not found – nothing to validate"
+        exit 0
+    fi
+    if ! command -v npm >/dev/null 2>&1; then
+        echo "::error::npm is required to validate contracts"
+        exit 1
+    fi
+    # Prefer npx to avoid global state on shared runners
+    shopt -s nullglob
+    mapfile -t schemas < <(compgen -G 'contracts/**/*.schema.json' || true)
+    if (( ${#schemas[@]} == 0 )); then
+        echo "::notice::No schemas found under contracts/"
+    else
+        for schema in "${schemas[@]}"; do
+            echo "::group::Schema ${schema}"
+            npx --yes ajv-cli@5 compile -s "${schema}" --strict=true
+            echo "::endgroup::"
+        done
+    fi
+    if compgen -G 'fixtures/**/*.jsonl' >/dev/null; then
+        for fixture in fixtures/**/*.jsonl; do
+            base="$(basename "${fixture}" .jsonl)"
+            schema="contracts/${base}.schema.json"
+            echo "::group::Validate ${fixture}"
+            if [[ -f "${schema}" ]]; then
+                npx --yes ajv-cli@5 validate -s "${schema}" -d "${fixture}" --spec=draft2020 --errors=line --all-errors
+            else
+                echo "::notice::No matching schema for ${fixture} (expected ${schema})"
+            fi
+            echo "::endgroup::"
+        done
+    else
+        echo "No fixtures found under fixtures/"
+    fi
+    EOS
 
 e2e-dry:
     set -a; [ -f scripts/e2e/.env ] && . scripts/e2e/.env || true; set +a

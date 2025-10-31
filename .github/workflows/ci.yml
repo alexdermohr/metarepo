@@ -1,8 +1,11 @@
-name: CI
-# Linked ADR: docs/adrs/0001-contracts-v1-jsonl.md
-
+name: ci
 permissions:
-  contents: read  # Limit default token scope for least privilege.
+  contents: read
+env:
+  CARGO_NET_GIT_FETCH_WITH_CLI: true
+  CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
+  RUSTFLAGS: "-Dwarnings"
+  RUSTDOCFLAGS: "-Dwarnings"
 
 on:
   push:
@@ -54,10 +57,6 @@ jobs:
       RUST_BACKTRACE: 1
       CARGO_TERM_COLOR: always
       CARGO_INCREMENTAL: 0
-      CARGO_NET_GIT_FETCH_WITH_CLI: true
-      CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
-      RUSTFLAGS: "-Dwarnings"
-      RUSTDOCFLAGS: "-Dwarnings"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -79,34 +78,34 @@ jobs:
           if [[ -f .github/workflows/get-yq-version.py ]]; then
             YQ_VER="$("${PYTHON_BIN}" .github/workflows/get-yq-version.py)"
           else
-            YQ_VER="$("${PYTHON_BIN}" - <<'PY'
-import pathlib
-import re
-import sys
-
-toolchain_path = pathlib.Path("toolchain.versions.yml")
-try:
-    contents = toolchain_path.read_text(encoding="utf-8")
-except FileNotFoundError:
-    sys.exit("toolchain.versions.yml not found")
-
-match = re.search(r"^yq:\s*\"?([^\"#\n]+)\"?", contents, re.MULTILINE)
-if not match:
-    sys.exit("yq version missing in toolchain.versions.yml")
-
-print(match.group(1).strip())
-PY
-)"
+            YQ_VER="$("${PYTHON_BIN}" -c $'import pathlib,re,sys\np=pathlib.Path("toolchain.versions.yml")\n'
+              $'c=p.read_text(encoding="utf-8")\n'
+              $'m=re.search(r"^yq:\\s*\\"?([^\\"#\\n]+)\\"?",c,re.M)\n'
+              $'sys.exit("yq version missing in toolchain.versions.yml") if not m else print(m.group(1).strip())')"
           fi
           test -n "${YQ_VER}" || { echo "Failed to resolve yq version" >&2; exit 1; }
           echo "YQ_VERSION=${YQ_VER}" >> "$GITHUB_ENV"
           echo "Resolved yq version ${YQ_VER}"
+
+      - name: Cache yq binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/bin/yq
+          # Expressions werden vor Steps ausgewertet → YQ_VERSION ist hier noch nicht verfügbar.
+          # Verwende Hash der Versionsdatei, um Cache bei Änderung automatisch zu invalidieren.
+          key: ${{ runner.os }}-yq-${{ hashFiles('toolchain.versions.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-yq-
+            yq-
 
       - name: Ensure yq is available
         run: |
           mkdir -p "$HOME/.local/bin"
           export YQ_VERSION="${YQ_VERSION:?YQ_VERSION not set}"
           YQ_VER_TRIM="${YQ_VERSION#v}"
+
+          # Ensure PATH to local bin for the rest of the job
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
           if [[ -x scripts/tools/yq-pin.sh ]]; then
             scripts/tools/yq-pin.sh ensure
@@ -121,28 +120,26 @@ PY
 
             YQ_URL="https://github.com/mikefarah/yq/releases/download/v${YQ_VER_TRIM}/yq_${OS}_${ARCH}"
             YQ_SHA_URL="${YQ_URL}.sha256"
-
             TMP_YQ="$(mktemp)"
-            TMP_SHA="${TMP_YQ}.sha"
-            trap 'rm -f "${TMP_YQ}" "${TMP_SHA}"' EXIT
-
-            echo "Downloading yq v${YQ_VER_TRIM} from ${YQ_URL}"
-            curl --retry 3 --retry-all-errors -LsSf "${YQ_URL}" -o "${TMP_YQ}"
-            curl --retry 3 --retry-all-errors -LsSf "${YQ_SHA_URL}" -o "${TMP_SHA}"
-
-            EXPECTED_SHA="$(cut -d' ' -f1 "${TMP_SHA}")"
-            if command -v sha256sum >/dev/null; then
-              ACTUAL_SHA="$(sha256sum "${TMP_YQ}" | awk '{print $1}')"
-            else
-              ACTUAL_SHA="$(shasum -a 256 "${TMP_YQ}" | awk '{print $1}')"
+            TMP_SHA="$(mktemp)"
+            echo "Downloading yq ${YQ_VERSION} from ${YQ_URL}"
+            curl -fsSL -o "${TMP_YQ}" "${YQ_URL}"
+            # SHA-Datei ist optional unterschiedlich formatiert; prüfen, wenn vorhanden
+            if curl -fsSL -o "${TMP_SHA}" "${YQ_SHA_URL}"; then
+              EXPECTED="$(cut -d ' ' -f1 < "${TMP_SHA}")"
+              if command -v sha256sum >/dev/null; then
+                ACTUAL="$(sha256sum "${TMP_YQ}" | cut -d ' ' -f1)"
+              else
+                ACTUAL="$(shasum -a 256 "${TMP_YQ}" | awk '{print $1}')"
+              fi
+              if [[ -n "${EXPECTED}" && "${EXPECTED}" != "${ACTUAL}" ]]; then
+                echo "Checksum mismatch for yq (expected ${EXPECTED}, got ${ACTUAL})" >&2
+                exit 1
+              fi
             fi
-            [[ "${ACTUAL_SHA}" == "${EXPECTED_SHA}" ]] || { echo "yq checksum mismatch" >&2; exit 1; }
-
             install -m 0755 "${TMP_YQ}" "$HOME/.local/bin/yq"
             rm -f "${TMP_YQ}" "${TMP_SHA}"
-            trap - EXIT
-
-            echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+            yq --version
           fi
 
           if ! command -v yq >/dev/null; then

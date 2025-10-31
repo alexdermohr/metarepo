@@ -77,10 +77,11 @@ jobs:
           fi
 
       - name: Lint GitHub workflows (actionlint)
-        uses: rhysd/actionlint@v1
+        uses: rhysd/actionlint@v1.2.0
         with:
           args: -color
-        # Use the action wrapper instead of the GHCR image to avoid registry auth issues.
+        # Pin to a concrete release for determinism and use the action wrapper instead of the GHCR image
+        # to avoid registry auth issues.
 
       - name: Show tool versions
         run: |

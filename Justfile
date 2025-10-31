@@ -15,6 +15,7 @@ default: help
 help:
     @printf "Metarepo Justfile – häufige Kommandos:\n"
     @printf "  just deps          # Tooling & Pins via uv sync --frozen\n"
+    @printf "  just deps-graph    # Dependency graph (GEXF + JSON unter reports/graphs/)\n"
     @printf "  just list          # WGX-Liste aller angebundenen Repos\n"
     @printf "  just up            # Templates synchronisieren (wgx up)\n"
     @printf "  just validate      # Lokale Checks (Linting, Format, yq)\n"
@@ -29,6 +30,17 @@ alias yq  := _yq
 # --- Org Assets ---------------------------------------------------------------
 deps:
     uv sync --frozen
+
+deps-graph:
+    @mkdir -p reports/graphs
+    @python3 scripts/graph/deps_graph.py \
+        --output reports/graphs/deps_graph.gexf \
+        --json-output reports/graphs/deps_graph.json
+
+impact-analysis *args:
+    @python3 scripts/graph/impact_analysis.py \
+        --graph reports/graphs/deps_graph.gexf \
+        {{args}}
 
 org-index:
     uv run scripts/generate_org_assets.py --repos-file repos.yml --index docs/org-index.md

@@ -77,7 +77,7 @@ jobs:
           fi
 
       - name: Lint GitHub workflows (actionlint)
-        uses: docker://ghcr.io/rhysd/actionlint:1.7.1
+        uses: rhysd/actionlint@v1.7.1
         with:
           args: -color
 

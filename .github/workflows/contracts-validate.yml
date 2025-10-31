@@ -37,7 +37,9 @@ jobs:
   ajv:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: ${{ hashFiles('contracts/**/*.schema.json') != '' }}
+    # Use the caller's schema_glob if provided, otherwise fall back to local contracts/
+    if: ${{ (inputs.schema_glob != '' && hashFiles(inputs.schema_glob) != '') || (hashFiles('contracts/**/*.schema.json') != '') }}
+
     steps:
       - uses: actions/checkout@v4 # v4 (major tag)
 
@@ -58,10 +60,6 @@ jobs:
           set -euo pipefail
           # Fallback, wenn der Workflow nicht via workflow_call läuft:
           SCHEMA_GLOB="${SCHEMA_GLOB:-contracts/**/*.schema.json}"
-          if [[ ! -d contracts ]]; then
-            echo 'contracts directory not found – skipping compilation'
-            exit 0
-          fi
           shopt -s nullglob
           mapfile -t schemas < <(compgen -G "${SCHEMA_GLOB}" || true)
           if (( ${#schemas[@]} == 0 )); then
@@ -70,7 +68,7 @@ jobs:
           fi
           for schema in "${schemas[@]}"; do
             echo "::group::Schema ${schema}"
-            npx --yes ajv-cli@5 compile -s "${schema}" --strict=true
+            npx --yes ajv-cli@5 compile -s "${schema}" --strict=true --spec=draft2020
             echo '::endgroup::'
           done
 
@@ -87,7 +85,7 @@ jobs:
               schema="contracts/${base}.schema.json"
               echo "::group::Validate ${fixture}"
               if [[ -f "${schema}" ]]; then
-                npx --yes ajv-cli@5 validate -s "${schema}" -d "${fixture}" --spec=draft2020 --errors=line --all-errors
+                npx --yes ajv-cli@5 validate -s "${schema}" -d "${fixture}" --spec=draft2020 --errors=line --all-errors --validate-formats=true
               else
                 echo "::notice::No matching schema for ${fixture} (expected ${schema})"
               fi
@@ -112,31 +110,31 @@ jobs:
                 continue
                 ;;
               *insights/*|*insights.json)
-                npx --yes ajv-cli@5 validate -s contracts/insights.schema.json -d "${file}" --spec=draft2020 --all-errors || failed=1
+                npx --yes ajv-cli@5 validate -s contracts/insights.schema.json -d "${file}" --spec=draft2020 --all-errors --validate-formats=true || failed=1
                 ;;
               *metrics*.json)
-                npx --yes ajv-cli@5 validate -s contracts/metrics.snapshot.schema.json -d "${file}" --spec=draft2020 --all-errors || failed=1
+                npx --yes ajv-cli@5 validate -s contracts/metrics.snapshot.schema.json -d "${file}" --spec=draft2020 --all-errors --validate-formats=true || failed=1
                 ;;
               *audio*events*.json|*audio*.jsonl)
-                npx --yes ajv-cli@5 validate -s contracts/audio.events.schema.json -d "${file}" --spec=draft2020 --all-errors || failed=1
+                npx --yes ajv-cli@5 validate -s contracts/audio.events.schema.json -d "${file}" --spec=draft2020 --all-errors --validate-formats=true || failed=1
                 ;;
               *aussen*|*extern*events*.jsonl)
-                npx --yes ajv-cli@5 validate -s contracts/aussen.event.schema.json -d "${file}" --spec=draft2020 --all-errors || failed=1
+                npx --yes ajv-cli@5 validate -s contracts/aussen.event.schema.json -d "${file}" --spec=draft2020 --all-errors --validate-formats=true || failed=1
                 ;;
               *policy*decision*.json)
-                npx --yes ajv-cli@5 validate -s contracts/policy.decision.schema.json -d "${file}" --spec=draft2020 --all-errors || failed=1
+                npx --yes ajv-cli@5 validate -s contracts/policy.decision.schema.json -d "${file}" --spec=draft2020 --all-errors --validate-formats=true || failed=1
                 ;;
               *intent*event*.json)
-                npx --yes ajv-cli@5 validate -s contracts/intent_event.schema.json -d "${file}" --spec=draft2020 --all-errors || failed=1
+                npx --yes ajv-cli@5 validate -s contracts/intent_event.schema.json -d "${file}" --spec=draft2020 --all-errors --validate-formats=true || failed=1
                 ;;
               *os.context.state*.json)
-                npx --yes ajv-cli@5 validate -s contracts/os.context.state.schema.json -d "${file}" --spec=draft2020 --all-errors || failed=1
+                npx --yes ajv-cli@5 validate -s contracts/os.context.state.schema.json -d "${file}" --spec=draft2020 --all-errors --validate-formats=true || failed=1
                 ;;
               *os.context.text.redacted*.json)
-                npx --yes ajv-cli@5 validate -s contracts/os.context.text.redacted.schema.json -d "${file}" --spec=draft2020 --all-errors || failed=1
+                npx --yes ajv-cli@5 validate -s contracts/os.context.text.redacted.schema.json -d "${file}" --spec=draft2020 --all-errors --validate-formats=true || failed=1
                 ;;
               *os.context.text.embed*.json)
-                npx --yes ajv-cli@5 validate -s contracts/os.context.text.embed.schema.json -d "${file}" --spec=draft2020 --all-errors || failed=1
+                npx --yes ajv-cli@5 validate -s contracts/os.context.text.embed.schema.json -d "${file}" --spec=draft2020 --all-errors --validate-formats=true || failed=1
                 ;;
             esac
           done < <(find . \

@@ -77,9 +77,10 @@ jobs:
           fi
 
       - name: Lint GitHub workflows (actionlint)
-        uses: docker://ghcr.io/rhysd/actionlint:1.7.1
+        uses: rhysd/actionlint@v1
         with:
           args: -color
+        # Use the action wrapper instead of the GHCR image to avoid registry auth issues.
 
       - name: Show tool versions
         run: |

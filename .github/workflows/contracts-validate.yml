@@ -1,149 +1,79 @@
 name: contracts-validate
 
-permissions:
-  contents: read
-
 on:
   push:
     paths:
-      - 'contracts/**/*.json'
-      - 'contracts/**/*.schema.json'
       - '.github/workflows/contracts-validate.yml'
-      - 'fixtures/**/*.jsonl'
+      - 'fixtures/**'
+      - 'contracts/**'
+      - 'schemas/**'
   pull_request:
     paths:
-      - 'contracts/**/*.json'
-      - 'contracts/**/*.schema.json'
       - '.github/workflows/contracts-validate.yml'
-      - 'fixtures/**/*.jsonl'
+      - 'fixtures/**'
+      - 'contracts/**'
+      - 'schemas/**'
   workflow_dispatch:
-  workflow_call:
-    inputs:
-      # Optional glob override when reusing this workflow
-      schema_glob:
-        required: false
-        type: string
-        default: 'contracts/**/*.schema.json'
 
 concurrency:
-  group: contracts-validate-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-defaults:
-  run:
-    shell: bash --noprofile --norc -euo pipefail {0}
-
 jobs:
-  ajv:
+  guard:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    # Use the caller's schema_glob if provided, otherwise fall back to local contracts/
-    if: ${{ (inputs.schema_glob != '' && hashFiles(inputs.schema_glob) != '') || (hashFiles('contracts/**/*.schema.json') != '') }}
-
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4 # v4 (major tag)
-
-      - name: Setup Node
-        uses: actions/setup-node@v4 # v4 (major tag)
+      - name: Checkout (full history for diff)
+        uses: actions/checkout@v4
         with:
-          node-version: '20'
+          fetch-depth: 0
 
-      - name: Ensure Node toolchain sane
-        run: |
-          npm config set fund false
-          npm config set audit false
-
-      - name: Compile schemas
+      - name: Enforce centralized contracts policy
         env:
-          SCHEMA_GLOB: ${{ inputs.schema_glob }}
+          # Set ALLOW_LOCAL_CONTRACTS=1 in repo variables to skip the guard (rare exceptions).
+          ALLOW_LOCAL_CONTRACTS: ${{ vars.ALLOW_LOCAL_CONTRACTS }}
         run: |
           set -euo pipefail
-          # Fallback, wenn der Workflow nicht via workflow_call läuft:
-          SCHEMA_GLOB="${SCHEMA_GLOB:-contracts/**/*.schema.json}"
-          shopt -s nullglob
-          mapfile -t schemas < <(compgen -G "${SCHEMA_GLOB}" || true)
-          if (( ${#schemas[@]} == 0 )); then
-            echo "::notice::No schemas found for pattern '${SCHEMA_GLOB}'"
+          if [[ "${ALLOW_LOCAL_CONTRACTS:-0}" == "1" ]]; then
+            echo "::notice::ALLOW_LOCAL_CONTRACTS=1 - guard skipped."
             exit 0
           fi
-          for schema in "${schemas[@]}"; do
-            echo "::group::Schema ${schema}"
-            npx --yes ajv-cli@5 compile -s "${schema}" --strict=true --spec=draft2020
-            echo '::endgroup::'
+
+          # Determine base for diff
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            # parent of HEAD on push
+            BASE_SHA="$(git rev-parse HEAD^)"
+          fi
+
+          # List changed paths relevant to forbidden dirs
+          CHANGED=$(git diff --name-only "${BASE_SHA}"...HEAD | grep -E '^(contracts/|schemas/)' || true)
+
+          # If repo already contains these dirs but they are not part of the change, warn only.
+          EXISTING=()
+          for d in contracts schemas; do
+            [[ -d "$d" ]] && EXISTING+=("$d")
           done
 
-      - name: Validate fixtures (if any)
-        run: |
-          set -euo pipefail
-          if [[ ! -d contracts ]]; then
-            echo 'contracts directory not found – skipping fixture validation'
-            exit 0
-          fi
-          if compgen -G 'fixtures/**/*.jsonl' >/dev/null; then
-            for fixture in fixtures/**/*.jsonl; do
-              base="$(basename "${fixture}" .jsonl)"
-              schema="contracts/${base}.schema.json"
-              echo "::group::Validate ${fixture}"
-              if [[ -f "${schema}" ]]; then
-                npx --yes ajv-cli@5 validate -s "${schema}" -d "${fixture}" --spec=draft2020 --errors=line --all-errors --validate-formats=true
-              else
-                echo "::notice::No matching schema for ${fixture} (expected ${schema})"
-              fi
-              echo '::endgroup::'
-            done
+          if [[ -n "${CHANGED}" ]]; then
+            echo "::error::Changes detected under 'contracts/' or 'schemas/'. These must live in heimgewebe/contracts."
+            echo "${CHANGED}"
+            exit 1
+          elif (( ${#EXISTING[@]} )); then
+            echo "::warning::Repository currently contains: ${EXISTING[*]}. Please migrate to heimgewebe/contracts."
           else
-            echo 'no fixtures found'
+            echo "No local contracts/schemas detected or changed."
           fi
 
-      - name: Validate curated payloads
-        run: |
-          set -euo pipefail
-          if [[ ! -d contracts ]]; then
-            echo 'contracts directory not found – skipping curated payload validation'
-            exit 0
-          fi
-          shopt -s nullglob
-          failed=0
-          while IFS= read -r -d '' file; do
-            case "${file}" in
-              *schema.json)
-                continue
-                ;;
-              *insights/*|*insights.json)
-                npx --yes ajv-cli@5 validate -s contracts/insights.schema.json -d "${file}" --spec=draft2020 --all-errors --validate-formats=true || failed=1
-                ;;
-              *metrics*.json)
-                npx --yes ajv-cli@5 validate -s contracts/metrics.snapshot.schema.json -d "${file}" --spec=draft2020 --all-errors --validate-formats=true || failed=1
-                ;;
-              *audio*events*.json|*audio*.jsonl)
-                npx --yes ajv-cli@5 validate -s contracts/audio.events.schema.json -d "${file}" --spec=draft2020 --all-errors --validate-formats=true || failed=1
-                ;;
-              *aussen*|*extern*events*.jsonl)
-                npx --yes ajv-cli@5 validate -s contracts/aussen.event.schema.json -d "${file}" --spec=draft2020 --all-errors --validate-formats=true || failed=1
-                ;;
-              *policy*decision*.json)
-                npx --yes ajv-cli@5 validate -s contracts/policy.decision.schema.json -d "${file}" --spec=draft2020 --all-errors --validate-formats=true || failed=1
-                ;;
-              *intent*event*.json)
-                npx --yes ajv-cli@5 validate -s contracts/intent_event.schema.json -d "${file}" --spec=draft2020 --all-errors --validate-formats=true || failed=1
-                ;;
-              *os.context.state*.json)
-                npx --yes ajv-cli@5 validate -s contracts/os.context.state.schema.json -d "${file}" --spec=draft2020 --all-errors --validate-formats=true || failed=1
-                ;;
-              *os.context.text.redacted*.json)
-                npx --yes ajv-cli@5 validate -s contracts/os.context.text.redacted.schema.json -d "${file}" --spec=draft2020 --all-errors --validate-formats=true || failed=1
-                ;;
-              *os.context.text.embed*.json)
-                npx --yes ajv-cli@5 validate -s contracts/os.context.text.embed.schema.json -d "${file}" --spec=draft2020 --all-errors --validate-formats=true || failed=1
-                ;;
-            esac
-          done < <(find . \
-              -type f \
-              \( -name '*.json' -o -name '*.jsonl' \) \
-              -not -name '*schema.json' \
-              -not -path '*/node_modules/*' \
-              -not -path '*/.git/*' -print0)
-          if (( failed != 0 )); then
-            echo '::error::One or more payloads failed validation'
-            exit 1
-          fi
+  validate:
+    needs: guard
+    permissions:
+      contents: read
+      workflows: read
+    uses: heimgewebe/contracts/.github/workflows/contracts-ajv-reusable.yml@${{ vars.CONTRACTS_WORKFLOW_REF || 'v0.1.0' }}
+    with:
+      contracts_ref: ${{ vars.CONTRACTS_REF || 'v0.1.0' }}
+      fixtures_glob: ${{ vars.FIXTURES_GLOB || 'fixtures/**/*.jsonl,fixtures/**/*.json' }}
